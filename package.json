@@ -1,12 +1,18 @@
 {
   "name": "cooksy",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
+    "dev:web": "turbo run dev --filter=web",
+    "dev:api": "turbo run dev --filter=api",
+    "dev:mobile": "turbo run dev --filter=mobile",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "check-types": "turbo run check-types"
+    "check-types": "turbo run check-types",
+    "db:generate": "turbo run db:generate --filter=@repo/db",
+    "db:push": "turbo run db:push --filter=@repo/db"
   },
   "devDependencies": {
     "prettier": "^3.7.4",
@@ -16,9 +22,16 @@
   "engines": {
     "node": ">=18"
   },
+  "overrides": {
+    "drizzle-orm": "^0.44.2"
+  },
   "packageManager": "npm@11.11.0",
   "workspaces": [
     "apps/*",
     "packages/*"
-  ]
+  ],
+  "dependencies": {
+    "@floating-ui/utils": "^0.2.11",
+    "@next/env": "^16.2.9"
+  }
 }

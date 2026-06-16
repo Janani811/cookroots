@@ -1,21 +1,96 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
   "ui": "tui",
+  "globalDependencies": ["**/.env.local", "**/.env"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "!.next/cache/**"]
-    },
-    "lint": {
-      "dependsOn": ["^lint"]
-    },
-    "check-types": {
-      "dependsOn": ["^check-types"]
+      "inputs": ["src/**", "tsconfig.json", "tsconfig.build.json", "nest-cli.json", "next.config.js", ".eslintrc*", "$TURBO_DEFAULT$"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"],
+      "cache": true
     },
     "dev": {
+      "dependsOn": ["^build"],
+      "cache": true
+    },
+    "start": {
+      "dependsOn": ["build"],
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "interactive": true
+    },
+    "start:dev": {
+      "cache": false,
+      "persistent": true,
+      "interactive": true
+    },
+    "start:prod": {
+      "dependsOn": ["build"],
+      "cache": false
+    },
+    "lint": {
+      "dependsOn": ["^lint"],
+      "inputs": ["src/**", "**/*.ts", "**/*.tsx", ".eslintrc*", "$TURBO_DEFAULT$"],
+      "cache": true
+    },
+    "check-types": {
+      "dependsOn": ["^check-types"],
+      "inputs": ["src/**", "tsconfig.json", "$TURBO_DEFAULT$"],
+      "cache": true
+    },
+    "test": {
+      "dependsOn": [],
+      "inputs": ["src/**", "test/**", "jest.config.*", "$TURBO_DEFAULT$"],
+      "cache": true
+    },
+    "test:watch": {
+      "cache": false,
+      "persistent": true,
+      "interactive": true
+    },
+    "test:cov": {
+      "dependsOn": [],
+      "inputs": ["src/**", "test/**", "jest.config.*", "$TURBO_DEFAULT$"],
+      "outputs": ["coverage/**"],
+      "cache": true
+    },
+    "test:e2e": {
+      "dependsOn": [],
+      "inputs": ["src/**", "test/**", "$TURBO_DEFAULT$"],
+      "cache": false
+    },
+    "test:debug": {
+      "cache": false,
+      "persistent": true,
+      "interactive": true
+    },
+    "db:generate": {
+      "dependsOn": [],
+      "inputs": ["src/**", "drizzle.config.ts", "$TURBO_DEFAULT$"],
+      "outputs": ["migrations/**", "drizzle/**"],
+      "cache": true
+    },
+    "db:migrate": {
+      "dependsOn": ["db:generate"],
+      "cache": false
+    },
+    "db:push": {
+      "dependsOn": [],
+      "cache": false
+    },
+    "db:studio": {
+      "cache": false,
+      "persistent": true,
+      "interactive": true
+    },
+    "format": {
+      "cache": false
+    },
+    "generate:component": {
+      "cache": false,
+      "persistent": true,
+      "interactive": true
     }
-  }
+  },
+  "remoteCache": {}
 }

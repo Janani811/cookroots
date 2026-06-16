@@ -1,53 +1,222 @@
-# Turborepo starter
+# 🍳 Cooksy - Voice-First Recipe Platform
 
-This Turborepo starter is maintained by the Turborepo core team.
+**Cooksy** is a community recipe platform that uses AI to structure messy cooking instructions into clear, formatted recipes. Share your cooking videos, record voice instructions, and get AI-powered recipe formatting with hands-free cooking mode.
 
-## Using this example
+## Features
 
-Run the following command:
+✨ **AI-Powered Recipe Structuring**
+- Turn voice notes, messy instructions, or plain text into properly formatted recipes
+- Automatic ingredient parsing and normalization
+- Intelligent step extraction and timing estimation
 
-```sh
-npx create-turbo@latest
+🎙️ **Voice-First**
+- Record cooking instructions directly
+- Text-to-speech guidance during cooking
+- Hands-free step-by-step walkthrough
+
+👨‍🍳 **Cooking Mode**
+- Hands-free step playback with TTS
+- Ingredient checklist
+- Timer management
+
+🤝 **Community Features**
+- Like and comment on recipes
+- Share your culinary creations
+- Browse thousands of community recipes
+- Ingredient-based recipe discovery
+
+## Project Structure
+
+This is a **Turborepo monorepo** with the following structure:
+
+```
+cooksy/
+├── apps/
+│   ├── api/          # NestJS REST API (port 4000)
+│   ├── web/          # Next.js 16 web app (port 3000)
+│   ├── mobile/       # React Native/Expo mobile app
+│   └── backend/      # (Legacy/Unused)
+├── packages/
+│   ├── ai/           # OpenAI client & prompts
+│   ├── db/           # Drizzle ORM + PostgreSQL schema
+│   ├── types/        # Shared TypeScript types
+│   ├── ui/           # Shared React components
+│   ├── eslint-config/
+│   └── typescript-config/
 ```
 
-## What's inside?
+## Tech Stack
 
-This Turborepo includes the following packages/apps:
+**Backend:**
+- [NestJS](https://nestjs.com/) - REST API framework
+- [PostgreSQL](https://www.postgresql.org/) - Database
+- [Drizzle ORM](https://orm.drizzle.team/) - Type-safe SQL
+- [OpenAI](https://openai.com/) - AI integration
 
-### Apps and Packages
+**Frontend:**
+- [Next.js 16](https://nextjs.org/) - React framework (web)
+- [React Native](https://reactnative.dev/) - Mobile app
+- [TailwindCSS](https://tailwindcss.com/) - Styling
+- [Shadcn UI](https://ui.shadcn.com/) - Component library
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+## Getting Started
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+### Prerequisites
 
-### Utilities
+- Node.js 18+
+- pnpm (or npm/yarn)
+- PostgreSQL database
+- OpenAI API key
 
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+### 1. Install Dependencies
 
 ```sh
-cd my-turborepo
+pnpm install
+```
+
+### 2. Set Up Environment Variables
+
+**API (.env):**
+```bash
+# apps/api/.env
+DATABASE_URL=postgresql://user:password@localhost:5432/cooksy
+OPENAI_API_KEY=sk-...
+CORS_ORIGIN=http://localhost:3000,http://localhost:3001
+PORT=4000
+```
+
+**Web (.env.local):**
+```bash
+# apps/web/.env.local
+NEXT_PUBLIC_API_URL=http://localhost:4000
+```
+
+### 3. Set Up Database
+
+```sh
+cd packages/db
+pnpm db:push
+```
+
+### 4. Run in Development
+
+Open 4 terminals:
+
+**Terminal 1: API**
+```sh
+cd apps/api
+pnpm dev
+# Runs on http://localhost:4000
+```
+
+**Terminal 2: Web**
+```sh
+cd apps/web
+pnpm dev
+# Runs on http://localhost:3000
+```
+
+**Terminal 3: Mobile (optional)**
+```sh
+cd apps/mobile
+pnpm start
+```
+
+**Terminal 4: Watch TypeScript**
+```sh
+turbo build --watch
+```
+
+## Key APIs
+
+### Recipe Management
+- `GET /api/recipes` - List recipes (search, filter by difficulty)
+- `POST /api/recipes` - Create recipe
+- `GET /api/recipes/:id` - Get recipe detail
+- `DELETE /api/recipes/:id` - Delete recipe
+
+### AI Features
+- `POST /api/ai/structure` - Structure text/audio into recipe
+- `POST /api/ai/improve` - Improve recipe suggestions
+- `POST /api/ai/tts` - Generate step audio (text-to-speech)
+- `POST /api/ai/normalize-ingredients` - Normalize ingredient names
+
+### Social
+- `POST /api/social/likes` - Like recipe
+- `DELETE /api/social/likes/:id` - Unlike recipe
+- `GET /api/social/comments` - Get comments
+- `POST /api/social/comments` - Add comment
+
+### Grocery
+- `POST /api/grocery/lists` - Create grocery list from recipes
+- `GET /api/grocery/lists` - Get user's lists
+
+## Development Commands
+
+```sh
+# Build all apps
 turbo build
+
+# Run tests
+turbo test
+
+# Lint all code
+turbo lint
+
+# Format code
+turbo format
+
+# Dev server for all apps
+turbo dev
 ```
 
-Without global `turbo`, use your package manager:
+## Web App Pages
 
-```sh
-cd my-turborepo
-npx turbo build
+- `/` - Homepage with features
+- `/recipes` - Browse all recipes (with search/filter)
+- `/recipes/:id` - Recipe detail view
+- `/recipes/new` - Create new recipe (3-step flow)
+- `/dashboard` - User dashboard & recipe management
+
+## Features Implemented
+
+### ✅ Complete
+- Recipe CRUD operations
+- AI structuring from text/audio
+- Search & filtering recipes
+- Comments & likes system
+- Grocery list creation
+- Full web UI for all features
+- Authentication guards (API ready)
+
+### 🚧 In Progress
+- User authentication integration
+- File upload for audio/images
+- Cooking mode with TTS playback
+- Mobile app implementation
+
+## Database Schema
+
+See [packages/db/src/schema](packages/db/src/schema) for full schema. Key tables:
+
+- `users` - User accounts & roles
+- `recipes` - Recipe metadata
+- `recipe_steps` - Cooking instructions
+- `recipe_ingredients` - Ingredients
+- `recipe_likes` - Social engagement
+- `recipe_comments` - Community discussion
+- `grocery_lists` - User grocery lists
+
+## Contributing
+
+1. Create a feature branch
+2. Make your changes
+3. Run `turbo test` and `turbo lint`
+4. Submit a PR
+
+## License
+
+MIT
 npm dlx turbo build
 npm exec turbo build
 ```
