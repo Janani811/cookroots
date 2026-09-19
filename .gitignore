@@ -47,6 +47,9 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# Root-level docs (kept locally, not tracked)
+/*.md
+
 # Editors / OS
 .DS_Store
 *.pem
