@@ -1,8 +1,8 @@
 #!/bin/bash
-# Cooksy Setup Verification Script
+# Cookroots Setup Verification Script
 # Run this to verify everything is set up correctly
 
-echo "🍳 Cooksy Setup Verification"
+echo "🍳 Cookroots Setup Verification"
 echo "=============================="
 echo ""
 

@@ -65,7 +65,7 @@ export type TranslatedRecipeContent = {
 
 function getToken(): string | null {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem("cooksy_token");
+  return localStorage.getItem("cookroots_token");
 }
 
 function authHeaders(): HeadersInit {

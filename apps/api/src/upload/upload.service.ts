@@ -18,7 +18,7 @@ export class UploadService {
   ): Promise<{ url: string }> {
     const dataUri = `data:${mimetype};base64,${buffer.toString('base64')}`;
     const result = await cloudinary.uploader.upload(dataUri, {
-      folder: 'cooksy',
+      folder: 'cookroots',
       resource_type: 'image',
       // Cap stored dimensions and auto-compress to conserve the free-tier
       // storage/bandwidth credit pool — uploads are never stored larger

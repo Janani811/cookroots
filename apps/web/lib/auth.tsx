@@ -26,12 +26,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const persistSession = useCallback((token: string, nextUser: User) => {
-    localStorage.setItem("cooksy_token", token);
+    localStorage.setItem("cookroots_token", token);
     setUser(nextUser);
   }, []);
 
   useEffect(() => {
-    const token = localStorage.getItem("cooksy_token");
+    const token = localStorage.getItem("cookroots_token");
     if (!token) {
       setLoading(false);
       return;
@@ -40,7 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     api
       .getMe()
       .then(setUser)
-      .catch(() => localStorage.removeItem("cooksy_token"))
+      .catch(() => localStorage.removeItem("cookroots_token"))
       .finally(() => setLoading(false));
   }, []);
 
@@ -61,7 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const logout = useCallback(() => {
-    localStorage.removeItem("cooksy_token");
+    localStorage.removeItem("cookroots_token");
     setUser(null);
   }, []);
 

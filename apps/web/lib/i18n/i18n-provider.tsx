@@ -69,7 +69,7 @@ function translate(
 export const LOCALE_INIT_SCRIPT = `
 (function () {
   try {
-    var locale = localStorage.getItem("cooksy_locale") || "${DEFAULT_LOCALE}";
+    var locale = localStorage.getItem("cookroots_locale") || "${DEFAULT_LOCALE}";
     if (${JSON.stringify(Object.keys(UI_LOCALES))}.indexOf(locale) === -1) locale = "${DEFAULT_LOCALE}";
     document.documentElement.lang = locale;
   } catch (e) {}
@@ -80,7 +80,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   const [locale, setLocaleState] = useState<UILocale>(DEFAULT_LOCALE);
 
   useEffect(() => {
-    const stored = localStorage.getItem("cooksy_locale") as UILocale | null;
+    const stored = localStorage.getItem("cookroots_locale") as UILocale | null;
     if (stored && UI_LOCALES[stored]) {
       setLocaleState(stored);
       document.documentElement.lang = stored;
@@ -89,7 +89,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
 
   const setLocale = useCallback((next: UILocale) => {
     setLocaleState(next);
-    localStorage.setItem("cooksy_locale", next);
+    localStorage.setItem("cookroots_locale", next);
     document.documentElement.lang = next;
   }, []);
 

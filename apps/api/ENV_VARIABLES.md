@@ -5,10 +5,10 @@
 ### `DATABASE_URL`
 - **Description**: PostgreSQL connection string
 - **Format**: `postgresql://username:password@host:port/database`
-- **Example**: `postgresql://postgres:mypassword@localhost:5432/cooksy`
+- **Example**: `postgresql://postgres:mypassword@localhost:5432/cookroots`
 - **How to get**:
   1. Install PostgreSQL
-  2. Create a database: `createdb cooksy`
+  2. Create a database: `createdb cookroots`
   3. Get connection string from PostgreSQL
 
 ### `GEMINI_API_KEY`
@@ -84,7 +84,7 @@ cp .env.example .env
 
 Edit `apps/api/.env`:
 ```env
-DATABASE_URL=postgresql://postgres:password@localhost:5432/cooksy
+DATABASE_URL=postgresql://postgres:password@localhost:5432/cookroots
 GEMINI_API_KEY=your-gemini-key-here
 CORS_ORIGIN=http://localhost:3000
 PORT=4000
@@ -145,7 +145,7 @@ psql -U postgres
 
 ### Development (.env)
 ```env
-DATABASE_URL=postgresql://postgres:password@localhost:5432/cooksy
+DATABASE_URL=postgresql://postgres:password@localhost:5432/cookroots
 GEMINI_API_KEY=your-gemini-test-key
 CORS_ORIGIN=http://localhost:3000,http://localhost:3001
 NODE_ENV=development
@@ -154,9 +154,9 @@ PORT=4000
 
 ### Production (.env.production)
 ```env
-DATABASE_URL=postgresql://user:secure@prod.db.host/cooksy
+DATABASE_URL=postgresql://user:secure@prod.db.host/cookroots
 GEMINI_API_KEY=your-gemini-prod-key
-CORS_ORIGIN=https://cooksy.com,https://www.cooksy.com
+CORS_ORIGIN=https://cookroots.com,https://www.cookroots.com
 NODE_ENV=production
 PORT=4000
 JWT_SECRET=your-secret-key
@@ -164,9 +164,9 @@ JWT_SECRET=your-secret-key
 
 ### Staging (.env.staging)
 ```env
-DATABASE_URL=postgresql://user:password@staging.db.host/cooksy
+DATABASE_URL=postgresql://user:password@staging.db.host/cookroots
 GEMINI_API_KEY=your-gemini-staging-key
-CORS_ORIGIN=https://staging.cooksy.com
+CORS_ORIGIN=https://staging.cookroots.com
 NODE_ENV=staging
 PORT=4000
 ```
@@ -191,7 +191,7 @@ If using Docker, pass env variables at runtime:
 docker run \
   -e DATABASE_URL=postgresql://... \
   -e GEMINI_API_KEY=... \
-  cooksy-api
+  cookroots-api
 ```
 
 Or in `docker-compose.yml`:
@@ -200,7 +200,7 @@ Or in `docker-compose.yml`:
 services:
   api:
     environment:
-      DATABASE_URL: postgresql://postgres:password@db:5432/cooksy
+      DATABASE_URL: postgresql://postgres:password@db:5432/cookroots
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       CORS_ORIGIN: http://localhost:3000
 ```

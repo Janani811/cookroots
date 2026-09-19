@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useColorScheme } from "nativewind";
 import { createContext, useContext, useEffect, type ReactNode } from "react";
 
-const STORAGE_KEY = "cooksy_theme";
+const STORAGE_KEY = "cookroots_theme";
 
 type Theme = "light" | "dark";
 

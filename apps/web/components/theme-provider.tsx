@@ -39,8 +39,8 @@ function applyTheme(theme: ThemeName, mode: Mode) {
 export const THEME_INIT_SCRIPT = `
 (function () {
   try {
-    var theme = localStorage.getItem("cooksy_theme") || "${DEFAULT_THEME}";
-    var mode = localStorage.getItem("cooksy_mode");
+    var theme = localStorage.getItem("cookroots_theme") || "${DEFAULT_THEME}";
+    var mode = localStorage.getItem("cookroots_mode");
     if (!mode) {
       mode = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
     }
@@ -67,8 +67,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [mode, setModeState] = useState<Mode>("light");
 
   useEffect(() => {
-    const storedTheme = localStorage.getItem("cooksy_theme") as ThemeName | null;
-    const storedMode = localStorage.getItem("cooksy_mode") as Mode | null;
+    const storedTheme = localStorage.getItem("cookroots_theme") as ThemeName | null;
+    const storedMode = localStorage.getItem("cookroots_mode") as Mode | null;
     const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
 
     const initialTheme = storedTheme && THEMES[storedTheme] ? storedTheme : DEFAULT_THEME;
@@ -83,7 +83,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const setTheme = useCallback(
     (next: ThemeName) => {
       setThemeState(next);
-      localStorage.setItem("cooksy_theme", next);
+      localStorage.setItem("cookroots_theme", next);
       applyTheme(next, mode);
     },
     [mode]
@@ -92,7 +92,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const setMode = useCallback(
     (next: Mode) => {
       setModeState(next);
-      localStorage.setItem("cooksy_mode", next);
+      localStorage.setItem("cookroots_mode", next);
       applyTheme(theme, next);
     },
     [theme]

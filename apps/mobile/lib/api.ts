@@ -10,7 +10,7 @@ let cachedToken: string | null = null;
 async function getToken(): Promise<string | null> {
   if (cachedToken) return cachedToken;
   try {
-    cachedToken = await AsyncStorage.getItem("cooksy_token");
+    cachedToken = await AsyncStorage.getItem("cookroots_token");
     return cachedToken;
   } catch {
     return null;
@@ -20,7 +20,7 @@ async function getToken(): Promise<string | null> {
 async function setToken(token: string): Promise<void> {
   cachedToken = token;
   try {
-    await AsyncStorage.setItem("cooksy_token", token);
+    await AsyncStorage.setItem("cookroots_token", token);
   } catch (err) {
     console.error("Failed to save token:", err);
   }
@@ -29,7 +29,7 @@ async function setToken(token: string): Promise<void> {
 async function clearToken(): Promise<void> {
   cachedToken = null;
   try {
-    await AsyncStorage.removeItem("cooksy_token");
+    await AsyncStorage.removeItem("cookroots_token");
   } catch (err) {
     console.error("Failed to clear token:", err);
   }

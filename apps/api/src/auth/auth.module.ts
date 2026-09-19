@@ -13,7 +13,7 @@ import { EmailModule } from '../email/email.module';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        secret: config.get<string>('JWT_SECRET', 'cooksy-dev-secret'),
+        secret: config.get<string>('JWT_SECRET', 'cookroots-dev-secret'),
         signOptions: { expiresIn: '7d' },
       }),
     }),

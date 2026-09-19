@@ -1,6 +1,6 @@
 # Database Module
 
-The Database Module provides a centralized PostgreSQL connection for the Cooksy API using Drizzle ORM.
+The Database Module provides a centralized PostgreSQL connection for the Cookroots API using Drizzle ORM.
 
 ## Setup
 
@@ -8,7 +8,7 @@ The Database Module provides a centralized PostgreSQL connection for the Cooksy 
 
 Add to `.env`:
 ```
-DATABASE_URL=postgresql://user:password@localhost:5432/cooksy
+DATABASE_URL=postgresql://user:password@localhost:5432/cookroots
 ```
 
 ### 2. Import in AppModule
