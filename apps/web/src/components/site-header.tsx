@@ -6,7 +6,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
 import { ProfileDropdown } from "@/components/profile-dropdown";
-import { ThemeSwitcher } from "@/components/theme-switcher";
+import { ThemeSwitcher } from "@/theme/theme-switcher";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { NotificationBell } from "@/components/notification-bell";
 import { useTranslation } from "@/lib/i18n/i18n-provider";

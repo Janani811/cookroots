@@ -50,10 +50,10 @@ echo ""
 echo "✓ Checking database..."
 if [ -f ".env" ] || [ -f "apps/api/.env" ]; then
     echo "  ✅ .env file found"
-    if grep -q "DATABASE_URL" apps/api/.env 2>/dev/null; then
-        echo "  ✅ DATABASE_URL configured"
+    if grep -q "DB_HOST" apps/api/.env 2>/dev/null; then
+        echo "  ✅ DB_HOST configured"
     else
-        echo "  ⚠️  DATABASE_URL not set in .env"
+        echo "  ⚠️  DB_HOST not set in .env"
     fi
 else
     echo "  ⚠️  .env file not found. Create one based on .env.example"
@@ -92,7 +92,7 @@ echo "  [ ] Run: pnpm install"
 echo "  [ ] Setup PostgreSQL database"
 echo "  [ ] Create .env file (copy from .env.example)"
 echo "  [ ] Create apps/web/.env.local (copy from .env.example)"
-echo "  [ ] Run: cd packages/db && pnpm db:push"
+echo "  [ ] Run: cd packages/db && npm run migration:push"
 echo ""
 echo "To run the app:"
 echo "  Terminal 1: cd apps/api && pnpm dev"

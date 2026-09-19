@@ -19,7 +19,7 @@ import {
   type Database,
 } from '@repo/db';
 import { count, desc, inArray } from 'drizzle-orm';
-import { DATABASE } from '../database/database.module';
+import { DATABASE } from '../db/database.constants';
 import { NotificationsService } from '../notifications/notifications.service';
 import type { ReactionTargetType } from './dto/social.dto';
 
@@ -93,7 +93,9 @@ export class SocialService {
     const commentIds = rows.map((r) => r.id);
     const [likeCounts, viewerLikedIds, reactionSummaries] = await Promise.all([
       this.getLikeCounts(commentIds),
-      viewerUserId ? this.getViewerLikedCommentIds(commentIds, viewerUserId) : Promise.resolve(new Set<string>()),
+      viewerUserId
+        ? this.getViewerLikedCommentIds(commentIds, viewerUserId)
+        : Promise.resolve(new Set<string>()),
       this.getReactionSummaries('comment', commentIds, viewerUserId),
     ]);
 
@@ -147,7 +149,11 @@ export class SocialService {
       .returning();
 
     const [user] = await this.db
-      .select({ id: users.id, name: users.name, profileImage: users.profileImage })
+      .select({
+        id: users.id,
+        name: users.name,
+        profileImage: users.profileImage,
+      })
       .from(users)
       .where(eq(users.id, userId))
       .limit(1);
@@ -202,12 +208,17 @@ export class SocialService {
     return this.db
       .delete(commentLikes)
       .where(
-        and(eq(commentLikes.commentId, commentId), eq(commentLikes.userId, userId)),
+        and(
+          eq(commentLikes.commentId, commentId),
+          eq(commentLikes.userId, userId),
+        ),
       )
       .returning();
   }
 
-  private async getLikeCounts(commentIds: string[]): Promise<Map<string, number>> {
+  private async getLikeCounts(
+    commentIds: string[],
+  ): Promise<Map<string, number>> {
     if (commentIds.length === 0) return new Map();
     const rows = await this.db
       .select({ commentId: commentLikes.commentId, n: count() })
@@ -226,7 +237,10 @@ export class SocialService {
       .select({ commentId: commentLikes.commentId })
       .from(commentLikes)
       .where(
-        and(inArray(commentLikes.commentId, commentIds), eq(commentLikes.userId, userId)),
+        and(
+          inArray(commentLikes.commentId, commentIds),
+          eq(commentLikes.userId, userId),
+        ),
       );
     return new Set(rows.map((r) => r.commentId));
   }
@@ -280,7 +294,9 @@ export class SocialService {
     targetType: ReactionTargetType,
     targetIds: string[],
     viewerUserId?: string,
-  ): Promise<Map<string, { emoji: string; count: number; reactedByViewer: boolean }[]>> {
+  ): Promise<
+    Map<string, { emoji: string; count: number; reactedByViewer: boolean }[]>
+  > {
     if (targetIds.length === 0) return new Map();
 
     const rows = await this.db
@@ -290,7 +306,12 @@ export class SocialService {
         n: count(),
       })
       .from(reactions)
-      .where(and(eq(reactions.targetType, targetType), inArray(reactions.targetId, targetIds)))
+      .where(
+        and(
+          eq(reactions.targetType, targetType),
+          inArray(reactions.targetId, targetIds),
+        ),
+      )
       .groupBy(reactions.targetId, reactions.emoji);
 
     const viewerRows = viewerUserId
@@ -305,7 +326,9 @@ export class SocialService {
             ),
           )
       : [];
-    const viewerSet = new Set(viewerRows.map((r) => `${r.targetId}:${r.emoji}`));
+    const viewerSet = new Set(
+      viewerRows.map((r) => `${r.targetId}:${r.emoji}`),
+    );
 
     const map = new Map<
       string,

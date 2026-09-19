@@ -2,14 +2,14 @@
 
 ## Required Variables (Must Have)
 
-### `DATABASE_URL`
-- **Description**: PostgreSQL connection string
-- **Format**: `postgresql://username:password@host:port/database`
-- **Example**: `postgresql://postgres:mypassword@localhost:5432/cookroots`
+### `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`
+- **Description**: Discrete PostgreSQL connection credentials, used to build a `pg` connection pool (see `packages/db/src/config/database.config.ts`)
+- **Example**: `DB_HOST=localhost`, `DB_PORT=5432`, `DB_NAME=cookroots`, `DB_USER=postgres`, `DB_PASSWORD=mypassword`
+- **SSL**: enabled automatically when `NODE_ENV=production` (needed for managed Postgres like Neon/Supabase)
 - **How to get**:
   1. Install PostgreSQL
   2. Create a database: `createdb cookroots`
-  3. Get connection string from PostgreSQL
+  3. Use its host/port/name/user/password (or the values from your managed Postgres provider)
 
 ### `GEMINI_API_KEY`
 - **Description**: Google Gemini API key for AI features (recipe structuring, health classification, voice transcription)
@@ -84,7 +84,11 @@ cp .env.example .env
 
 Edit `apps/api/.env`:
 ```env
-DATABASE_URL=postgresql://postgres:password@localhost:5432/cookroots
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=cookroots
+DB_USER=postgres
+DB_PASSWORD=password
 GEMINI_API_KEY=your-gemini-key-here
 CORS_ORIGIN=http://localhost:3000
 PORT=4000
@@ -107,17 +111,16 @@ Should see: `🚀 Server running on http://localhost:4000`
 - [ ] Create PostgreSQL database
 - [ ] Get Gemini API key
 - [ ] Create `apps/api/.env` from `.env.example`
-- [ ] Fill in `DATABASE_URL` and `GEMINI_API_KEY`
+- [ ] Fill in `DB_HOST`/`DB_PORT`/`DB_NAME`/`DB_USER`/`DB_PASSWORD` and `GEMINI_API_KEY`
 - [ ] Test with `pnpm dev`
 
 ---
 
 ## Troubleshooting
 
-### "DATABASE_URL environment variable is not set"
+### "Connection refused" / pool fails to connect
 ```bash
-# Make sure apps/api/.env exists with DATABASE_URL set
-echo "DATABASE_URL=postgresql://..." > apps/api/.env
+# Make sure apps/api/.env exists with DB_HOST/DB_PORT/DB_NAME/DB_USER/DB_PASSWORD set
 ```
 
 ### "Connection refused" (Database)
@@ -145,7 +148,11 @@ psql -U postgres
 
 ### Development (.env)
 ```env
-DATABASE_URL=postgresql://postgres:password@localhost:5432/cookroots
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=cookroots
+DB_USER=postgres
+DB_PASSWORD=password
 GEMINI_API_KEY=your-gemini-test-key
 CORS_ORIGIN=http://localhost:3000,http://localhost:3001
 NODE_ENV=development
@@ -154,7 +161,11 @@ PORT=4000
 
 ### Production (.env.production)
 ```env
-DATABASE_URL=postgresql://user:secure@prod.db.host/cookroots
+DB_HOST=prod.db.host
+DB_PORT=5432
+DB_NAME=cookroots
+DB_USER=user
+DB_PASSWORD=secure
 GEMINI_API_KEY=your-gemini-prod-key
 CORS_ORIGIN=https://cookroots.com,https://www.cookroots.com
 NODE_ENV=production
@@ -164,7 +175,11 @@ JWT_SECRET=your-secret-key
 
 ### Staging (.env.staging)
 ```env
-DATABASE_URL=postgresql://user:password@staging.db.host/cookroots
+DB_HOST=staging.db.host
+DB_PORT=5432
+DB_NAME=cookroots
+DB_USER=user
+DB_PASSWORD=password
 GEMINI_API_KEY=your-gemini-staging-key
 CORS_ORIGIN=https://staging.cookroots.com
 NODE_ENV=staging
@@ -176,7 +191,7 @@ PORT=4000
 ## Security Notes
 
 - ✅ `.env` is in `.gitignore` (never commit!)
-- ✅ Use strong passwords for DATABASE_URL
+- ✅ Use a strong `DB_PASSWORD`
 - ✅ Rotate API keys periodically
 - ✅ Don't share .env files
 - ✅ Use environment variables on hosting (Vercel, Railway, etc.)
@@ -189,7 +204,11 @@ If using Docker, pass env variables at runtime:
 
 ```bash
 docker run \
-  -e DATABASE_URL=postgresql://... \
+  -e DB_HOST=db \
+  -e DB_PORT=5432 \
+  -e DB_NAME=cookroots \
+  -e DB_USER=postgres \
+  -e DB_PASSWORD=password \
   -e GEMINI_API_KEY=... \
   cookroots-api
 ```
@@ -200,7 +219,11 @@ Or in `docker-compose.yml`:
 services:
   api:
     environment:
-      DATABASE_URL: postgresql://postgres:password@db:5432/cookroots
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: cookroots
+      DB_USER: postgres
+      DB_PASSWORD: password
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       CORS_ORIGIN: http://localhost:3000
 ```

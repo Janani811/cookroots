@@ -1,26 +1,32 @@
-# Database Module
+# DB Module
 
-The Database Module provides a centralized PostgreSQL connection for the Cookroots API using Drizzle ORM.
+The DB Module provides a centralized PostgreSQL connection for the Cookroots API using Drizzle ORM, backed by a `pg` connection pool.
 
 ## Setup
 
-### 1. Environment Variable
+### 1. Environment Variables
 
 Add to `.env`:
 ```
-DATABASE_URL=postgresql://user:password@localhost:5432/cookroots
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=cookroots
+DB_USER=postgres
+DB_PASSWORD=password
 ```
+
+SSL is enabled automatically when `NODE_ENV=production` (needed for managed Postgres like Neon/Supabase).
 
 ### 2. Import in AppModule
 
-The DatabaseModule is automatically imported in `app.module.ts`:
+The DbModule is automatically imported in `app.module.ts`:
 ```typescript
-import { DatabaseModule } from './database/database.module';
+import { DbModule } from './db/db.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    DatabaseModule,
+    DbModule,
     // ... other modules
   ],
 })
@@ -35,7 +41,7 @@ Inject the database using the `DATABASE` token:
 
 ```typescript
 import { Inject, Injectable } from '@nestjs/common';
-import { DATABASE } from '../database/database.module';
+import { DATABASE } from '../db/database.constants';
 import type { Database } from '@repo/db';
 import { recipes, eq } from '@repo/db';
 
@@ -57,8 +63,8 @@ export class MyService {
 
 ## How It Works
 
-1. **DatabaseModule** (`database.module.ts`)
-   - Reads `DATABASE_URL` from environment
+1. **DbModule** (`db.module.ts`)
+   - Builds a `pg` `Pool` from `DB_HOST`/`DB_PORT`/`DB_NAME`/`DB_USER`/`DB_PASSWORD` (see `@repo/db`'s `config/database.config.ts`)
    - Creates a database provider
    - Exports the `DATABASE` token for injection
 
@@ -91,8 +97,8 @@ import {
 To add new tables:
 
 1. Define table in `packages/db/src/schema`
-2. Generate migration: `cd packages/db && pnpm db:generate`
-3. Sync to database: `pnpm db:push`
+2. Generate migration: `cd packages/db && npm run migration:generate`
+3. Sync to database: `npm run migration:push`
 4. Import and use in services
 
 ## Debugging
@@ -101,13 +107,13 @@ To add new tables:
 
 ```bash
 cd packages/db
-pnpm db:studio
+npm run migration:studio
 # Visit http://localhost:5555
 ```
 
 ### Check Connection
 
-The module will throw an error if `DATABASE_URL` is not set or invalid.
+The `pg` `Pool` will fail to connect if `DB_HOST`/`DB_NAME`/`DB_USER`/`DB_PASSWORD` are unset or invalid.
 
 ## References
 

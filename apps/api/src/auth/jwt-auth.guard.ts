@@ -7,7 +7,7 @@ import {
 import { AuthService } from './auth.service';
 
 @Injectable()
-export class AuthGuard implements CanActivate {
+export class JwtAuthGuard implements CanActivate {
   constructor(private readonly authService: AuthService) {}
 
   canActivate(context: ExecutionContext): boolean {
@@ -30,28 +30,5 @@ export class AuthGuard implements CanActivate {
     } catch {
       throw new UnauthorizedException('Invalid or expired token');
     }
-  }
-}
-
-@Injectable()
-export class OptionalAuthGuard implements CanActivate {
-  constructor(private readonly authService: AuthService) {}
-
-  canActivate(context: ExecutionContext): boolean {
-    const request = context.switchToHttp().getRequest();
-    const authHeader = request.headers.authorization;
-
-    if (authHeader) {
-      const [scheme, token] = authHeader.split(' ');
-      if (scheme === 'Bearer' && token) {
-        try {
-          request.userId = this.authService.verifyToken(token);
-        } catch {
-          // Ignore invalid optional auth
-        }
-      }
-    }
-
-    return true;
   }
 }

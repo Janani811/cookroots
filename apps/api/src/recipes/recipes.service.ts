@@ -25,7 +25,7 @@ import {
 } from '@repo/db';
 import { count } from 'drizzle-orm';
 import type { HealthBadge, StructuredRecipe } from '@repo/types';
-import { DATABASE } from '../database/database.module';
+import { DATABASE } from '../db/database.constants';
 import { AiService } from '../ai/ai.service';
 import type { CreateRecipeDto, UpdateRecipeDto } from './dto/recipes.dto';
 
@@ -59,7 +59,8 @@ const MEAT_EGG_KEYWORDS = [
 ];
 
 function recipeText(recipe: StructuredRecipe): string {
-  const ingredientNames = recipe.ingredients?.map((i) => i.name).join(' ') ?? '';
+  const ingredientNames =
+    recipe.ingredients?.map((i) => i.name).join(' ') ?? '';
   const tags = recipe.tags?.join(' ') ?? '';
   return `${ingredientNames} ${tags}`.toLowerCase();
 }
@@ -176,7 +177,7 @@ export class RecipesService {
         or(
           ilike(recipes.title, `%${searchTerm}%`),
           ilike(recipes.description, `%${searchTerm}%`),
-        )!,
+        ),
       );
     }
 
@@ -297,7 +298,10 @@ export class RecipesService {
         title: cached.title,
         description: cached.description,
         ingredients: cached.ingredients as { name: string; quantity: string }[],
-        steps: cached.steps as { stepNumber: number; instructionText: string }[],
+        steps: cached.steps as {
+          stepNumber: number;
+          instructionText: string;
+        }[],
       };
     }
 

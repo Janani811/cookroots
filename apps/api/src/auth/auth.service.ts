@@ -10,7 +10,7 @@ import { ConfigService } from '@nestjs/config';
 import { eq, passwordResetTokens, users } from '@repo/db';
 import * as bcrypt from 'bcryptjs';
 import { randomBytes, createHash } from 'crypto';
-import { DATABASE } from '../database/database.module';
+import { DATABASE } from '../db/database.constants';
 import { EmailService } from '../email/email.service';
 import type { Database } from '@repo/db';
 import type { LoginDto, SignupDto, UpdateProfileDto } from './dto/auth.dto';

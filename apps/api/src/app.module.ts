@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AiModule } from './ai/ai.module';
 import { AuthModule } from './auth/auth.module';
-import { DatabaseModule } from './database/database.module';
+import { DbModule } from './db/db.module';
 import { GroceryModule } from './grocery/grocery.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { RecipesModule } from './recipes/recipes.module';
@@ -12,7 +12,7 @@ import { UploadModule } from './upload/upload.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    DatabaseModule,
+    DbModule,
     AuthModule,
     RecipesModule,
     AiModule,

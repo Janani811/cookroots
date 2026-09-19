@@ -3,8 +3,8 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-import { AuthGuard } from './auth.guard';
-import { DatabaseModule } from '../database';
+import { JwtAuthGuard } from './jwt-auth.guard';
+import { DbModule } from '../db';
 import { EmailModule } from '../email/email.module';
 
 @Module({
@@ -17,11 +17,11 @@ import { EmailModule } from '../email/email.module';
         signOptions: { expiresIn: '7d' },
       }),
     }),
-    DatabaseModule,
+    DbModule,
     EmailModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, AuthGuard],
-  exports: [AuthService, AuthGuard, JwtModule],
+  providers: [AuthService, JwtAuthGuard],
+  exports: [AuthService, JwtAuthGuard, JwtModule],
 })
 export class AuthModule {}

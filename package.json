@@ -11,8 +11,8 @@
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types",
-    "db:generate": "turbo run db:generate --filter=@repo/db",
-    "db:push": "turbo run db:push --filter=@repo/db"
+    "migration:generate": "turbo run migration:generate --filter=@repo/db",
+    "migration:push": "turbo run migration:push --filter=@repo/db"
   },
   "devDependencies": {
     "prettier": "^3.7.4",

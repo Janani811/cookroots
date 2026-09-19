@@ -15,21 +15,24 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
-    "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio",
+    "migration:generate": "drizzle-kit generate --config=src/config/migration.config.ts",
+    "migration:push": "drizzle-kit push --config=src/config/migration.config.ts",
+    "migration:drop": "drizzle-kit drop --config=src/config/migration.config.ts",
+    "migration:run": "drizzle-kit migrate --config=src/config/migration.config.ts",
+    "migration:studio": "drizzle-kit studio --config=src/config/migration.config.ts",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
     "@repo/types": "*",
+    "dotenv": "^16.4.5",
     "drizzle-orm": "^0.44.2",
     "gel": "^0.0.1",
-    "postgres": "^3.4.7"
+    "pg": "^8.13.1"
   },
   "devDependencies": {
     "@repo/typescript-config": "*",
     "@types/node": "^22.15.3",
+    "@types/pg": "^8.11.10",
     "drizzle-kit": "^0.31.4",
     "typescript": "5.9.2"
   }

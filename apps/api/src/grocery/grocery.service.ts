@@ -12,7 +12,7 @@ import {
   recipes,
   type Database,
 } from '@repo/db';
-import { DATABASE } from '../database/database.module';
+import { DATABASE } from '../db/database.constants';
 import type { CreateGroceryListDto } from './dto/grocery.dto';
 
 @Injectable()

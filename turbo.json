@@ -64,21 +64,25 @@
       "persistent": true,
       "interactive": true
     },
-    "db:generate": {
+    "migration:generate": {
       "dependsOn": [],
-      "inputs": ["src/**", "drizzle.config.ts", "$TURBO_DEFAULT$"],
+      "inputs": ["src/**", "src/config/migration.config.ts", "$TURBO_DEFAULT$"],
       "outputs": ["migrations/**", "drizzle/**"],
       "cache": true
     },
-    "db:migrate": {
-      "dependsOn": ["db:generate"],
+    "migration:run": {
+      "dependsOn": ["migration:generate"],
       "cache": false
     },
-    "db:push": {
+    "migration:push": {
       "dependsOn": [],
       "cache": false
     },
-    "db:studio": {
+    "migration:drop": {
+      "dependsOn": [],
+      "cache": false
+    },
+    "migration:studio": {
       "cache": false,
       "persistent": true,
       "interactive": true

@@ -1,10 +1,11 @@
-import { drizzle } from "drizzle-orm/postgres-js";
-import postgres from "postgres";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
+import connectionOptions from "./config/database.config";
 import * as schema from "./schema/index";
 
-export function createDb(connectionString: string) {
-  const client = postgres(connectionString);
-  return drizzle(client, { schema });
+export function createDb(options?: { logger?: boolean }) {
+  const connection = new Pool(connectionOptions);
+  return drizzle(connection, { schema, logger: options?.logger ?? false });
 }
 
 export type Database = ReturnType<typeof createDb>;

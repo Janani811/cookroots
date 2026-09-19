@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Palette, Sun, Moon, Check } from "lucide-react";
-import { THEMES, THEME_NAMES } from "@/lib/themes";
-import { useThemeSwitcher } from "@/components/theme-provider";
+import { THEMES, THEME_NAMES } from "@/theme/themes";
+import { useThemeSwitcher } from "@/theme/theme-provider";
 import { useTranslation } from "@/lib/i18n/i18n-provider";
 import { cn } from "@/lib/utils";
 

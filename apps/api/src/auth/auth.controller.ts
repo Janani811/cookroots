@@ -6,11 +6,11 @@ import {
   Param,
   Patch,
   Post,
-  Req,
   UseGuards,
 } from '@nestjs/common';
+import { CurrentUser } from '../common/current-user.decorator';
 import { AuthService } from './auth.service';
-import { AuthGuard } from './auth.guard';
+import { JwtAuthGuard } from './jwt-auth.guard';
 import {
   ForgotPasswordDto,
   LoginDto,
@@ -45,9 +45,9 @@ export class AuthController {
   }
 
   @Get('me')
-  @UseGuards(AuthGuard)
-  getMe(@Req() req: { userId: string }) {
-    return this.authService.getProfile(req.userId);
+  @UseGuards(JwtAuthGuard)
+  getMe(@CurrentUser() userId: string) {
+    return this.authService.getProfile(userId);
   }
 
   @Get('users/:userId')
@@ -56,25 +56,25 @@ export class AuthController {
   }
 
   @Patch('users/:userId')
-  @UseGuards(AuthGuard)
+  @UseGuards(JwtAuthGuard)
   updateProfile(
     @Param() params: UserIdParamDto,
     @Body() dto: UpdateProfileDto,
-    @Req() req: { userId: string },
+    @CurrentUser() userId: string,
   ) {
-    if (req.userId !== params.userId) {
+    if (userId !== params.userId) {
       throw new ForbiddenException("Cannot update another user's profile");
     }
     return this.authService.updateProfile(params.userId, dto);
   }
 
   @Post('users/:userId/upgrade-creator')
-  @UseGuards(AuthGuard)
+  @UseGuards(JwtAuthGuard)
   upgradeToCreator(
     @Param() params: UserIdParamDto,
-    @Req() req: { userId: string },
+    @CurrentUser() userId: string,
   ) {
-    if (req.userId !== params.userId) {
+    if (userId !== params.userId) {
       throw new ForbiddenException("Cannot upgrade another user's role");
     }
     return this.authService.upgradeToCreator(params.userId);

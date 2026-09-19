@@ -7,7 +7,7 @@ import {
   useEffect,
   useState,
 } from "react";
-import { THEMES, DEFAULT_THEME, type ThemeName } from "@/lib/themes";
+import { THEMES, DEFAULT_THEME, type ThemeName } from "@/theme/themes";
 
 type Mode = "light" | "dark";
 

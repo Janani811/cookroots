@@ -6,10 +6,10 @@ import {
   Param,
   Patch,
   Post,
-  Req,
   UseGuards,
 } from '@nestjs/common';
-import { AuthGuard } from '../auth/auth.guard';
+import { CurrentUser } from '../common/current-user.decorator';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import {
   AddGroceryItemDto,
   CreateFromRecipeDto,
@@ -20,79 +20,67 @@ import {
 import { GroceryService } from './grocery.service';
 
 @Controller('grocery')
-@UseGuards(AuthGuard)
+@UseGuards(JwtAuthGuard)
 export class GroceryController {
   constructor(private readonly groceryService: GroceryService) {}
 
   @Post()
-  create(@Body() dto: CreateGroceryListDto, @Req() req: { userId: string }) {
-    return this.groceryService.create(req.userId, dto);
+  create(@Body() dto: CreateGroceryListDto, @CurrentUser() userId: string) {
+    return this.groceryService.create(userId, dto);
   }
 
   @Post('from-recipe/:recipeId')
   createFromRecipe(
     @Param('recipeId') recipeId: string,
     @Body() dto: CreateFromRecipeDto,
-    @Req() req: { userId: string },
+    @CurrentUser() userId: string,
   ) {
-    return this.groceryService.createFromRecipe(req.userId, recipeId, dto.name);
+    return this.groceryService.createFromRecipe(userId, recipeId, dto.name);
   }
 
   @Get('users/:userId')
   findByUser(
     @Param('userId') userId: string,
-    @Req() req: { userId: string },
+    @CurrentUser() currentUserId: string,
   ) {
-    return this.groceryService.findByUser(userId, req.userId);
+    return this.groceryService.findByUser(userId, currentUserId);
   }
 
   @Get(':listId')
-  findOne(
-    @Param('listId') listId: string,
-    @Req() req: { userId: string },
-  ) {
-    return this.groceryService.findById(listId, req.userId);
+  findOne(@Param('listId') listId: string, @CurrentUser() userId: string) {
+    return this.groceryService.findById(listId, userId);
   }
 
   @Patch(':listId')
   rename(
     @Param('listId') listId: string,
     @Body() dto: RenameGroceryListDto,
-    @Req() req: { userId: string },
+    @CurrentUser() userId: string,
   ) {
-    return this.groceryService.rename(listId, dto.name, req.userId);
+    return this.groceryService.rename(listId, dto.name, userId);
   }
 
   @Delete(':listId')
-  deleteList(
-    @Param('listId') listId: string,
-    @Req() req: { userId: string },
-  ) {
-    return this.groceryService.deleteList(listId, req.userId);
+  deleteList(@Param('listId') listId: string, @CurrentUser() userId: string) {
+    return this.groceryService.deleteList(listId, userId);
   }
 
   @Post(':listId/items')
   addItem(
     @Param('listId') listId: string,
     @Body() dto: AddGroceryItemDto,
-    @Req() req: { userId: string },
+    @CurrentUser() userId: string,
   ) {
-    return this.groceryService.addItem(listId, dto, req.userId);
+    return this.groceryService.addItem(listId, dto, userId);
   }
 
   @Delete('items/:itemId')
-  removeItem(
-    @Param('itemId') itemId: string,
-    @Req() req: { userId: string },
-  ) {
-    return this.groceryService.removeItem(itemId, req.userId);
+  removeItem(@Param('itemId') itemId: string, @CurrentUser() userId: string) {
+    return this.groceryService.removeItem(itemId, userId);
   }
 
   @Patch('items/toggle')
-  toggleItem(
-    @Body() dto: ToggleGroceryItemDto,
-    @Req() req: { userId: string },
-  ) {
-    return this.groceryService.toggleItem(dto.itemId, dto.isChecked, req.userId);
+  toggleItem(@Body() dto: ToggleGroceryItemDto, @CurrentUser() userId: string) {
+    return this.groceryService.toggleItem(dto.itemId, dto.isChecked, userId);
   }
 }

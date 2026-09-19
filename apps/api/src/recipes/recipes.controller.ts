@@ -7,10 +7,11 @@ import {
   Patch,
   Post,
   Query,
-  Req,
   UseGuards,
 } from '@nestjs/common';
-import { AuthGuard, OptionalAuthGuard } from '../auth/auth.guard';
+import { CurrentUser } from '../common/current-user.decorator';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { OptionalAuthGuard } from '../auth/optional-auth.guard';
 import {
   CreateRecipeDto,
   MatchIngredientsDto,
@@ -26,18 +27,15 @@ export class RecipesController {
   constructor(private readonly recipesService: RecipesService) {}
 
   @Post()
-  @UseGuards(AuthGuard)
-  create(@Body() dto: CreateRecipeDto, @Req() req: { userId: string }) {
-    return this.recipesService.create(dto, req.userId);
+  @UseGuards(JwtAuthGuard)
+  create(@Body() dto: CreateRecipeDto, @CurrentUser() userId: string) {
+    return this.recipesService.create(dto, userId);
   }
 
   @Get()
   @UseGuards(OptionalAuthGuard)
-  findAll(
-    @Query() query: SearchRecipesDto,
-    @Req() req: { userId?: string },
-  ) {
-    return this.recipesService.findAll(query, req.userId);
+  findAll(@Query() query: SearchRecipesDto, @CurrentUser() userId?: string) {
+    return this.recipesService.findAll(query, userId);
   }
 
   @Post('match-ingredients')
@@ -47,8 +45,8 @@ export class RecipesController {
 
   @Get(':id')
   @UseGuards(OptionalAuthGuard)
-  findOne(@Param() params: RecipeIdParamDto, @Req() req: { userId?: string }) {
-    return this.recipesService.findById(params.id, req.userId);
+  findOne(@Param() params: RecipeIdParamDto, @CurrentUser() userId?: string) {
+    return this.recipesService.findById(params.id, userId);
   }
 
   @Post(':id/translate')
@@ -56,24 +54,24 @@ export class RecipesController {
   translate(
     @Param() params: RecipeIdParamDto,
     @Body() dto: TranslateRecipeDto,
-    @Req() req: { userId?: string },
+    @CurrentUser() userId?: string,
   ) {
-    return this.recipesService.translate(params.id, dto.language, req.userId);
+    return this.recipesService.translate(params.id, dto.language, userId);
   }
 
   @Patch(':id')
-  @UseGuards(AuthGuard)
+  @UseGuards(JwtAuthGuard)
   update(
     @Param() params: RecipeIdParamDto,
     @Body() dto: UpdateRecipeDto,
-    @Req() req: { userId: string },
+    @CurrentUser() userId: string,
   ) {
-    return this.recipesService.update(params.id, req.userId, dto);
+    return this.recipesService.update(params.id, userId, dto);
   }
 
   @Delete(':id')
-  @UseGuards(AuthGuard)
-  delete(@Param() params: RecipeIdParamDto, @Req() req: { userId: string }) {
-    return this.recipesService.delete(params.id, req.userId);
+  @UseGuards(JwtAuthGuard)
+  delete(@Param() params: RecipeIdParamDto, @CurrentUser() userId: string) {
+    return this.recipesService.delete(params.id, userId);
   }
 }

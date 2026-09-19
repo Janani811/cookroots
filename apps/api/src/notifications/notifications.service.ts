@@ -8,7 +8,7 @@ import {
   type Database,
 } from '@repo/db';
 import { count, desc } from 'drizzle-orm';
-import { DATABASE } from '../database/database.module';
+import { DATABASE } from '../db/database.constants';
 
 type NotificationType = 'like' | 'comment' | 'reply' | 'rating' | 'tried';
 

@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { StructuredRecipe } from '@repo/types';
-import { AuthGuard } from '../auth/auth.guard';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AiService } from './ai.service';
 import {
   ClassifyHealthDto,
@@ -62,7 +62,7 @@ export class AiController {
   }
 
   @Post('transcribe')
-  @UseGuards(AuthGuard)
+  @UseGuards(JwtAuthGuard)
   @UseInterceptors(
     FileInterceptor('audio', { limits: { fileSize: MAX_AUDIO_BYTES } }),
   )
