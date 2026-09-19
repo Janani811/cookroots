@@ -1,6 +1,8 @@
 import type {
   StructuredRecipe,
   RecipeImprovementResult,
+  HealthClassification,
+  TranslatedRecipeContent,
 } from "@repo/types";
 
 import {
@@ -8,6 +10,9 @@ import {
   improveRecipePrompt,
   normalizeIngredientsPrompt,
   classifyHealthPrompt,
+  transcribeAudioPrompt,
+  polishStepPrompt,
+  translateRecipePrompt,
 } from "./prompts";
 
 import {
@@ -89,7 +94,42 @@ export class AiClient {
     return parsed.ingredients;
   }
 
-  async classifyHealth(recipe: StructuredRecipe) {
+  async transcribeAudio(
+    audioBase64: string,
+    mimeType: string,
+    language?: string
+  ): Promise<string> {
+    const result = await this.model.generateContent([
+      { text: transcribeAudioPrompt(language) },
+      { inlineData: { mimeType, data: audioBase64 } },
+    ]);
+
+    return result.response.text().trim();
+  }
+
+  async polishStep(text: string, language?: string): Promise<string> {
+    const result = await this.model.generateContent(
+      polishStepPrompt(text, language)
+    );
+
+    return result.response.text().trim();
+  }
+
+  async translateRecipe(
+    recipe: StructuredRecipe,
+    targetLanguage: string
+  ): Promise<TranslatedRecipeContent> {
+    const result = await this.model.generateContent(
+      translateRecipePrompt(recipe, targetLanguage)
+    );
+
+    const text = result.response.text();
+    if (!text) throw new Error("Empty AI response");
+
+    return parseJsonFromAi<TranslatedRecipeContent>(text);
+  }
+
+  async classifyHealth(recipe: StructuredRecipe): Promise<HealthClassification> {
     const result = await this.model.generateContent(
       classifyHealthPrompt(recipe)
     );
@@ -97,6 +137,6 @@ export class AiClient {
     const text = result.response.text();
     if (!text) throw new Error("Empty AI response");
 
-    return parseJsonFromAi(text);
+    return parseJsonFromAi<HealthClassification>(text);
   }
 }

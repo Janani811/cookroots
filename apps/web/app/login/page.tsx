@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
+import { PasswordInput } from "@/components/ui/password-input";
 import {
   Card,
   CardContent,
@@ -11,13 +12,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
 import { SiteHeader } from "@/components/site-header";
+import { useTranslation } from "@/lib/i18n/i18n-provider";
 
 export default function LoginPage() {
   const { login } = useAuth();
   const router = useRouter();
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -31,7 +33,7 @@ export default function LoginPage() {
       await login(email, password);
       router.push("/dashboard");
     } catch {
-      setError("Invalid email or password");
+      setError(t("login.invalidCredentials"));
     } finally {
       setLoading(false);
     }
@@ -43,8 +45,8 @@ export default function LoginPage() {
       <main className="mx-auto flex max-w-md flex-col px-6 py-16">
         <Card>
           <CardHeader>
-            <CardTitle>Welcome back</CardTitle>
-            <CardDescription>Log in to post and manage recipes</CardDescription>
+            <CardTitle>{t("login.welcomeBack")}</CardTitle>
+            <CardDescription>{t("login.subtitle")}</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -55,7 +57,7 @@ export default function LoginPage() {
               )}
               <div className="space-y-2">
                 <label className="text-sm font-medium" htmlFor="email">
-                  Email
+                  {t("login.email")}
                 </label>
                 <input
                   id="email"
@@ -67,27 +69,34 @@ export default function LoginPage() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium" htmlFor="password">
-                  Password
-                </label>
-                <input
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium" htmlFor="password">
+                    {t("login.password")}
+                  </label>
+                  <Link
+                    href="/forgot-password"
+                    className="text-xs text-primary underline-offset-4 hover:underline"
+                  >
+                    {t("login.forgotPassword")}
+                  </Link>
+                </div>
+                <PasswordInput
                   id="password"
-                  type="password"
                   required
                   minLength={6}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  className="h-10"
                 />
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Logging in..." : "Log in"}
+                {loading ? t("login.loggingIn") : t("login.logIn")}
               </Button>
             </form>
             <p className="mt-4 text-center text-sm text-muted-foreground">
-              No account?{" "}
+              {t("login.noAccount")}{" "}
               <Link href="/signup" className="text-primary underline-offset-4 hover:underline">
-                Sign up
+                {t("login.signUp")}
               </Link>
             </p>
           </CardContent>

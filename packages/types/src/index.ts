@@ -64,3 +64,15 @@ export interface NutritionInfo {
   carbsG: number;
   fatG: number;
 }
+
+export interface HealthClassification {
+  badges: HealthBadge[];
+  nutritionEstimate: NutritionInfo;
+}
+
+export interface TranslatedRecipeContent {
+  title: string;
+  description: string | null;
+  ingredients: Ingredient[];
+  steps: RecipeStep[];
+}

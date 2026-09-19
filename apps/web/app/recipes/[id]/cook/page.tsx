@@ -7,9 +7,11 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { api, speakText, stopSpeaking } from "@/lib/api";
 import { SiteHeader } from "@/components/site-header";
+import { useTranslation } from "@/lib/i18n/i18n-provider";
 
 export default function CookingModePage() {
   const params = useParams();
+  const { t } = useTranslation();
   const id = params.id as string;
 
   const [recipe, setRecipe] = useState<any>(null);
@@ -20,12 +22,13 @@ export default function CookingModePage() {
   const [speaking, setSpeaking] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [autoRead, setAutoRead] = useState(false);
 
   useEffect(() => {
     api
       .getRecipe(id)
       .then(setRecipe)
-      .catch(() => setError("Failed to load recipe"))
+      .catch(() => setError(t("recipeDetail.loadFailed")))
       .finally(() => setLoading(false));
 
     return () => stopSpeaking();
@@ -60,6 +63,7 @@ export default function CookingModePage() {
     stopSpeaking();
     setSpeaking(false);
     setStepIndex(index);
+    if (autoRead) readStep(index);
   }
 
   function nextStep() {
@@ -79,7 +83,7 @@ export default function CookingModePage() {
       <div className="min-h-screen bg-background">
         <SiteHeader />
         <div className="flex min-h-[60vh] items-center justify-center">
-          <p className="text-muted-foreground">Loading cooking mode...</p>
+          <p className="text-muted-foreground">{t("recipeCook.loadingCookingMode")}</p>
         </div>
       </div>
     );
@@ -90,9 +94,9 @@ export default function CookingModePage() {
       <div className="min-h-screen bg-background">
         <SiteHeader />
         <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4">
-          <p className="text-destructive">{error || "Recipe not found"}</p>
+          <p className="text-destructive">{error || t("recipeDetail.recipeNotFound")}</p>
           <Link href={`/recipes/${id}`} className={cn(buttonVariants())}>
-            Back to recipe
+            {t("recipeCook.backToRecipe")}
           </Link>
         </div>
       </div>
@@ -103,23 +107,32 @@ export default function CookingModePage() {
     <div className="min-h-screen bg-background">
       <SiteHeader />
 
-      <main className="mx-auto max-w-3xl px-6 py-8">
+      <main className="mx-auto max-w-4xl px-6 py-8">
         <div className="mb-6 flex items-center justify-between">
           <div>
-            <p className="text-sm text-muted-foreground">Cooking mode</p>
+            <p className="text-sm text-muted-foreground">{t("recipeCook.cookingMode")}</p>
             <h1 className="text-2xl font-bold">{recipe.title}</h1>
           </div>
-          <Link
-            href={`/recipes/${id}`}
-            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-          >
-            Exit
-          </Link>
+          <div className="flex items-center gap-2">
+            <Button
+              variant={autoRead ? "default" : "outline"}
+              size="sm"
+              onClick={() => setAutoRead((v) => !v)}
+            >
+              {autoRead ? "🔊 Auto-read: On" : "🔇 Auto-read: Off"}
+            </Button>
+            <Link
+              href={`/recipes/${id}`}
+              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+            >
+              {t("recipeCook.exit")}
+            </Link>
+          </div>
         </div>
 
         {recipe.ingredients?.length > 0 && stepIndex === 0 && (
           <section className="mb-8 rounded-xl border p-4">
-            <h2 className="mb-3 font-semibold">Gather ingredients</h2>
+            <h2 className="mb-3 font-semibold">{t("recipeCook.gatherIngredients")}</h2>
             <ul className="space-y-2">
               {recipe.ingredients.map((ing: any, index: number) => (
                 <li key={index} className="flex items-center gap-3">
@@ -146,11 +159,9 @@ export default function CookingModePage() {
 
         <section className="rounded-xl border bg-card p-6 shadow-sm">
           <div className="mb-4 flex items-center justify-between text-sm text-muted-foreground">
-            <span>
-              Step {stepIndex + 1} of {steps.length}
-            </span>
+            <span>{t("recipeCook.stepOf", { current: stepIndex + 1, total: steps.length })}</span>
             {recipe.cookingTimeMinutes && (
-              <span>⏱️ {recipe.cookingTimeMinutes} min total</span>
+              <span>⏱️ {t("recipeCook.minTotal", { count: recipe.cookingTimeMinutes })}</span>
             )}
           </div>
 
@@ -164,24 +175,24 @@ export default function CookingModePage() {
               </p>
             </>
           ) : (
-            <p className="text-muted-foreground">No steps in this recipe.</p>
+            <p className="text-muted-foreground">{t("recipeCook.noSteps")}</p>
           )}
 
           <div className="mt-8 flex flex-wrap gap-3">
             <Button variant="outline" onClick={prevStep} disabled={stepIndex === 0}>
-              ← Previous
+              ← {t("recipeCook.previous")}
             </Button>
             <Button
               onClick={() => readStep(stepIndex)}
               disabled={speaking || !currentStep}
             >
-              {speaking ? "🔊 Speaking..." : "🔊 Read step"}
+              {speaking ? t("recipeCook.speaking") : t("recipeCook.readStep")}
             </Button>
             <Button
               onClick={nextStep}
               disabled={stepIndex >= steps.length - 1}
             >
-              Next →
+              {t("recipeCook.next")} →
             </Button>
           </div>
         </section>

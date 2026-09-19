@@ -14,8 +14,10 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { SiteHeader } from "@/components/site-header";
+import { useTranslation } from "@/lib/i18n/i18n-provider";
 
 export default function MatchIngredientsPage() {
+  const { t } = useTranslation();
   const [input, setInput] = useState("");
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -29,7 +31,7 @@ export default function MatchIngredientsPage() {
       .filter(Boolean);
 
     if (ingredients.length === 0) {
-      setError("Enter at least one ingredient");
+      setError(t("recipeMatch.enterAtLeastOne"));
       return;
     }
 
@@ -39,7 +41,7 @@ export default function MatchIngredientsPage() {
       const data = await api.matchIngredients(ingredients);
       setResults(data);
     } catch {
-      setError("Failed to search recipes");
+      setError(t("recipeMatch.searchFailed"));
     } finally {
       setLoading(false);
     }
@@ -48,24 +50,22 @@ export default function MatchIngredientsPage() {
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
-      <main className="mx-auto max-w-3xl px-6 py-8">
-        <h1 className="mb-2 text-3xl font-bold">Find recipes from your ingredients</h1>
-        <p className="mb-8 text-muted-foreground">
-          Enter what you have in your kitchen — we&apos;ll match community recipes.
-        </p>
+      <main className="mx-auto max-w-4xl px-6 py-8">
+        <h1 className="mb-2 text-3xl font-bold">{t("recipeMatch.title")}</h1>
+        <p className="mb-8 text-muted-foreground">{t("recipeMatch.subtitle")}</p>
 
         <form onSubmit={handleSearch} className="mb-8 space-y-4">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="e.g. chicken, rice, garlic, soy sauce"
+            placeholder={t("recipeMatch.inputPlaceholder")}
             className="min-h-32 w-full rounded-md border px-3 py-2 text-sm"
           />
           {error && (
             <p className="text-sm text-destructive">{error}</p>
           )}
           <Button type="submit" disabled={loading}>
-            {loading ? "Searching..." : "Find recipes"}
+            {loading ? t("recipeMatch.searching") : t("recipeMatch.findRecipes")}
           </Button>
         </form>
 
@@ -79,8 +79,8 @@ export default function MatchIngredientsPage() {
                       <CardTitle>{match.title}</CardTitle>
                       <CardDescription>
                         {match.matchType === "exact"
-                          ? "You have everything!"
-                          : "Partial match"}
+                          ? t("recipeMatch.haveEverything")
+                          : t("recipeMatch.partialMatch")}
                       </CardDescription>
                     </div>
                     <Badge
@@ -95,19 +95,19 @@ export default function MatchIngredientsPage() {
                 <CardContent className="space-y-3">
                   {match.matchedIngredients?.length > 0 && (
                     <p className="text-sm">
-                      ✓ Have: {match.matchedIngredients.join(", ")}
+                      ✓ {t("recipeMatch.have")}: {match.matchedIngredients.join(", ")}
                     </p>
                   )}
                   {match.missingIngredients?.length > 0 && (
                     <p className="text-sm text-muted-foreground">
-                      Missing: {match.missingIngredients.join(", ")}
+                      {t("recipeMatch.missing")}: {match.missingIngredients.join(", ")}
                     </p>
                   )}
                   <Link
                     href={`/recipes/${match.recipeId}`}
                     className={cn(buttonVariants({ size: "sm" }))}
                   >
-                    View recipe
+                    {t("recipeMatch.viewRecipe")}
                   </Link>
                 </CardContent>
               </Card>
@@ -116,9 +116,7 @@ export default function MatchIngredientsPage() {
         )}
 
         {!loading && results.length === 0 && input && (
-          <p className="text-muted-foreground">
-            No matches yet. Try different ingredients or browse all recipes.
-          </p>
+          <p className="text-muted-foreground">{t("recipeMatch.noMatchesYet")}</p>
         )}
       </main>
     </div>

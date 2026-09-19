@@ -15,6 +15,48 @@
       "when": 1781626109670,
       "tag": "0001_useful_shaman",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785308825041,
+      "tag": "0002_keen_roughhouse",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1785309713106,
+      "tag": "0003_whole_titanium_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1785319021645,
+      "tag": "0004_cool_dormammu",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1786082881337,
+      "tag": "0005_yellow_vulcan",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1786087886498,
+      "tag": "0006_wise_thunderbolt_ross",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1786099663561,
+      "tag": "0007_misty_vivisector",
+      "breakpoints": true
     }
   ]
 }

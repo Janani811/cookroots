@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { PasswordInput } from "@/components/ui/password-input";
 import {
   Card,
   CardContent,
@@ -13,10 +14,12 @@ import {
 } from "@/components/ui/card";
 import { useAuth } from "@/lib/auth";
 import { SiteHeader } from "@/components/site-header";
+import { useTranslation } from "@/lib/i18n/i18n-provider";
 
 export default function SignupPage() {
   const { signup } = useAuth();
   const router = useRouter();
+  const { t } = useTranslation();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -31,7 +34,7 @@ export default function SignupPage() {
       await signup(name, email, password);
       router.push("/recipes/new");
     } catch {
-      setError("Could not create account. Email may already be in use.");
+      setError(t("signup.createAccountError"));
     } finally {
       setLoading(false);
     }
@@ -43,10 +46,8 @@ export default function SignupPage() {
       <main className="mx-auto flex max-w-md flex-col px-6 py-16">
         <Card>
           <CardHeader>
-            <CardTitle>Create your account</CardTitle>
-            <CardDescription>
-              Join Cooksy to share recipes with the community
-            </CardDescription>
+            <CardTitle>{t("signup.title")}</CardTitle>
+            <CardDescription>{t("signup.subtitle")}</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -57,7 +58,7 @@ export default function SignupPage() {
               )}
               <div className="space-y-2">
                 <label className="text-sm font-medium" htmlFor="name">
-                  Name
+                  {t("signup.name")}
                 </label>
                 <input
                   id="name"
@@ -70,7 +71,7 @@ export default function SignupPage() {
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium" htmlFor="email">
-                  Email
+                  {t("signup.email")}
                 </label>
                 <input
                   id="email"
@@ -83,26 +84,25 @@ export default function SignupPage() {
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium" htmlFor="password">
-                  Password
+                  {t("signup.password")}
                 </label>
-                <input
+                <PasswordInput
                   id="password"
-                  type="password"
                   required
                   minLength={6}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  className="h-10"
                 />
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Creating account..." : "Sign up"}
+                {loading ? t("signup.creatingAccount") : t("signup.signUp")}
               </Button>
             </form>
             <p className="mt-4 text-center text-sm text-muted-foreground">
-              Already have an account?{" "}
+              {t("signup.alreadyHaveAccount")}{" "}
               <Link href="/login" className="text-primary underline-offset-4 hover:underline">
-                Log in
+                {t("signup.logIn")}
               </Link>
             </p>
           </CardContent>

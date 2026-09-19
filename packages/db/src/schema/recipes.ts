@@ -16,6 +16,11 @@ export const recipeDifficultyEnum = pgEnum("recipe_difficulty", [
 
 export const recipeStatusEnum = pgEnum("recipe_status", ["draft", "published"]);
 
+export const recipeVisibilityEnum = pgEnum("recipe_visibility", [
+  "private",
+  "public",
+]);
+
 export const recipes = pgTable("recipes", {
   id: uuid("id").defaultRandom().primaryKey(),
   title: text("title").notNull(),
@@ -27,6 +32,7 @@ export const recipes = pgTable("recipes", {
   cookingTimeMinutes: integer("cooking_time_minutes"),
   difficulty: recipeDifficultyEnum("difficulty"),
   status: recipeStatusEnum("status").notNull().default("draft"),
+  visibility: recipeVisibilityEnum("visibility").notNull().default("public"),
   tags: text("tags").array().notNull().default([]),
   language: text("language"),
   createdAt: timestamp("created_at", { withTimezone: true })

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 // import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -17,6 +18,9 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { SiteHeader } from "@/components/site-header";
 import { RECIPE_LANGUAGES, type RecipeLanguageCode } from "@/lib/languages";
+import { SortableList, type Keyed } from "@/components/sortable-list";
+import { Sparkles } from "lucide-react";
+import { useTranslation } from "@/lib/i18n/i18n-provider";
 
 type RecipeStep = {
   stepNumber: number;
@@ -27,6 +31,23 @@ type Ingredient = {
   name: string;
   quantity: string;
 };
+
+type StepRow = RecipeStep & Keyed;
+type IngredientRow = Ingredient & Keyed;
+
+function genKey() {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function withKeys<T>(items: T[]): (T & Keyed)[] {
+  return items.map((item) => ({ ...item, _key: genKey() }));
+}
+
+function stripKeys<T extends Keyed>(items: T[]): Omit<T, "_key">[] {
+  return items.map(({ _key, ...rest }) => rest);
+}
 
 type StructuredRecipe = {
   title: string;
@@ -41,6 +62,7 @@ type StructuredRecipe = {
 export default function CreateRecipePage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const { t } = useTranslation();
   const [step, setStep] = useState<"input" | "preview" | "details">("input");
   const [inputMethod, setInputMethod] = useState<"text" | "voice">("text");
   const [recipeText, setRecipeText] = useState("");
@@ -57,10 +79,38 @@ export default function CreateRecipePage() {
   );
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
-  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
-  const [steps, setSteps] = useState<RecipeStep[]>([]);
+  const [visibility, setVisibility] = useState<"public" | "private">("public");
+  const [ingredients, setIngredients] = useState<IngredientRow[]>([]);
+  const [steps, setSteps] = useState<StepRow[]>([]);
+  const [improveHistory, setImproveHistory] = useState<
+    Pick<
+      StructuredRecipe,
+      "title" | "description" | "ingredients" | "steps" | "difficulty" | "tags" | "cookingTimeMinutes"
+    >[]
+  >([]);
+  const [polishingStepKey, setPolishingStepKey] = useState<string | null>(null);
   const [cookingTime, setCookingTime] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [newIngredientName, setNewIngredientName] = useState("");
+  const [newIngredientQuantity, setNewIngredientQuantity] = useState("");
+  const [newStepText, setNewStepText] = useState("");
+
+  // Voice recording
+  const [voiceSupported, setVoiceSupported] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+
+  useEffect(() => {
+    setVoiceSupported(
+      typeof window !== "undefined" &&
+        !!navigator.mediaDevices?.getUserMedia &&
+        typeof window.MediaRecorder !== "undefined"
+    );
+  }, []);
 
   useEffect(() => {
     if (authLoading) return;
@@ -69,7 +119,7 @@ export default function CreateRecipePage() {
 
   async function handleStructure() {
     if (!recipeText.trim()) {
-      setError("Please enter recipe text");
+      setError(t("recipeNew.enterRecipeText"));
       return;
     }
 
@@ -85,20 +135,83 @@ export default function CreateRecipePage() {
       setDescription(result.description || "");
       setDifficulty(result.difficulty || "medium");
       setTags(result.tags || []);
-      setIngredients(result.ingredients || []);
-      setSteps(result.steps || []);
+      setIngredients(withKeys(result.ingredients || []));
+      setSteps(withKeys(result.steps || []));
       setCookingTime(result.cookingTimeMinutes || null);
+      setImproveHistory([]);
       setStep("preview");
     } catch (err) {
-      setError("Failed to structure recipe. Please try again.");
+      setError(t("recipeNew.structureFailed"));
       console.error(err);
     } finally {
       setLoading(false);
     }
   }
 
+  async function handleTranscribe(blob: Blob) {
+    try {
+      setTranscribing(true);
+      const { text } = await api.transcribeAudio(
+        blob,
+        language === "auto" ? undefined : language
+      );
+      if (text) {
+        setRecipeText((prev) => (prev.trim() ? `${prev}\n${text}` : text));
+        toast.success(t("recipeNew.transcribedToast"));
+      } else {
+        toast.error(t("recipeNew.noSpeechToast"));
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("recipeNew.transcribeFailed"));
+    } finally {
+      setTranscribing(false);
+    }
+  }
+
+  async function startRecording() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        stream.getTracks().forEach((track) => track.stop());
+        const blob = new Blob(audioChunksRef.current, {
+          type: mediaRecorder.mimeType || "audio/webm",
+        });
+        void handleTranscribe(blob);
+      };
+
+      mediaRecorder.start();
+      mediaRecorderRef.current = mediaRecorder;
+      setRecording(true);
+    } catch {
+      toast.error(t("recipeNew.micAccessFailed"));
+    }
+  }
+
+  function stopRecording() {
+    mediaRecorderRef.current?.stop();
+    setRecording(false);
+  }
+
   async function handleImprove() {
     if (!structured) return;
+
+    // Snapshot the current state so this AI pass can be undone.
+    const snapshot = {
+      title,
+      description,
+      ingredients: stripKeys(ingredients),
+      steps: stripKeys(steps),
+      difficulty,
+      tags,
+      cookingTimeMinutes: cookingTime,
+    };
 
     try {
       setLoading(true);
@@ -107,35 +220,74 @@ export default function CreateRecipePage() {
         JSON.stringify(structured),
         language === "auto" ? undefined : language
       );
+      setImproveHistory((prev) => [...prev, snapshot]);
       setStructured(result.improved);
       setTitle(result.improved.title);
       setDescription(result.improved.description || "");
-      setIngredients(result.improved.ingredients);
-      setSteps(result.improved.steps);
+      setIngredients(withKeys(result.improved.ingredients));
+      setSteps(withKeys(result.improved.steps));
       setDifficulty(result.improved.difficulty || "medium");
       setTags(result.improved.tags);
       setCookingTime(result.improved.cookingTimeMinutes);
     } catch (err) {
-      setError("Failed to improve recipe");
+      setError(t("recipeNew.improveFailed"));
       console.error(err);
     } finally {
       setLoading(false);
     }
   }
 
+  function handleUndoImprove() {
+    setImproveHistory((prev) => {
+      const last = prev[prev.length - 1];
+      if (!last) return prev;
+
+      setTitle(last.title);
+      setDescription(last.description || "");
+      setIngredients(withKeys(last.ingredients));
+      setSteps(withKeys(last.steps));
+      setDifficulty(last.difficulty || "medium");
+      setTags(last.tags);
+      setCookingTime(last.cookingTimeMinutes);
+      setStructured((s) => (s ? { ...s, ...last } : s));
+
+      return prev.slice(0, -1);
+    });
+  }
+
+  async function handlePolishStep(stepKey: string) {
+    const target = steps.find((s) => s._key === stepKey);
+    if (!target || !target.instructionText.trim()) return;
+
+    setPolishingStepKey(stepKey);
+    try {
+      const { text } = await api.polishStep(
+        target.instructionText,
+        language === "auto" ? undefined : language
+      );
+      setSteps((prev) =>
+        prev.map((s) => (s._key === stepKey ? { ...s, instructionText: text } : s))
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("recipeNew.polishFailed"));
+    } finally {
+      setPolishingStepKey(null);
+    }
+  }
+
   async function handleSubmit() {
     if (!title.trim()) {
-      setError("Recipe title is required");
+      setError(t("recipeNew.titleRequired"));
       return;
     }
 
     if (ingredients.length === 0) {
-      setError("At least one ingredient is required");
+      setError(t("recipeNew.ingredientRequired"));
       return;
     }
 
     if (steps.length === 0) {
-      setError("At least one step is required");
+      setError(t("recipeNew.stepRequired"));
       return;
     }
 
@@ -146,23 +298,42 @@ export default function CreateRecipePage() {
         title,
         description,
         difficulty,
-        ingredients,
-        steps,
+        ingredients: stripKeys(ingredients),
+        steps: stripKeys(steps),
         cookingTimeMinutes: cookingTime,
         tags,
         status: "published",
         language: language === "auto" ? undefined : language,
         rawInput: recipeText,
+        imageUrl: imageUrl ?? undefined,
+        visibility,
       };
 
       await api.createRecipe(recipeData);
       // Success - redirect to recipes page
       window.location.href = "/recipes";
     } catch (err) {
-      setError("Failed to create recipe");
+      setError(t("recipeNew.createFailed"));
       console.error(err);
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    setUploadingImage(true);
+    try {
+      const { url } = await api.uploadFile(file);
+      setImageUrl(url);
+      toast.success(t("recipeNew.photoUploadedToast"));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("recipeNew.uploadPhotoFailed"));
+    } finally {
+      setUploadingImage(false);
     }
   }
 
@@ -181,8 +352,55 @@ export default function CreateRecipePage() {
     setIngredients(ingredients.filter((_, i) => i !== index));
   }
 
+  function updateIngredient(index: number, field: "name" | "quantity", value: string) {
+    setIngredients(
+      ingredients.map((ing, i) => (i === index ? { ...ing, [field]: value } : ing))
+    );
+  }
+
+  function addIngredient() {
+    if (!newIngredientName.trim()) return;
+    setIngredients([
+      ...ingredients,
+      {
+        name: newIngredientName.trim(),
+        quantity: newIngredientQuantity.trim(),
+        _key: genKey(),
+      },
+    ]);
+    setNewIngredientName("");
+    setNewIngredientQuantity("");
+  }
+
+  function reorderIngredients(next: IngredientRow[]) {
+    setIngredients(next);
+  }
+
   function removeStep(index: number) {
-    setSteps(steps.filter((_, i) => i !== index));
+    setSteps(
+      steps
+        .filter((_, i) => i !== index)
+        .map((s, i) => ({ ...s, stepNumber: i + 1 }))
+    );
+  }
+
+  function updateStep(index: number, value: string) {
+    setSteps(
+      steps.map((s, i) => (i === index ? { ...s, instructionText: value } : s))
+    );
+  }
+
+  function addStep() {
+    if (!newStepText.trim()) return;
+    setSteps([
+      ...steps,
+      { stepNumber: steps.length + 1, instructionText: newStepText.trim(), _key: genKey() },
+    ]);
+    setNewStepText("");
+  }
+
+  function reorderSteps(next: StepRow[]) {
+    setSteps(next.map((s, i) => ({ ...s, stepNumber: i + 1 })));
   }
 
   if (authLoading || !user) {
@@ -190,7 +408,7 @@ export default function CreateRecipePage() {
       <div className="min-h-screen bg-background">
         <SiteHeader />
         <div className="flex min-h-[60vh] items-center justify-center">
-          <p className="text-muted-foreground">Loading...</p>
+          <p className="text-muted-foreground">{t("common.loading")}</p>
         </div>
       </div>
     );
@@ -200,8 +418,8 @@ export default function CreateRecipePage() {
     <div className="min-h-screen bg-background">
       <SiteHeader />
 
-      <main className="mx-auto max-w-3xl px-6 py-8">
-        <h1 className="mb-8 text-3xl font-bold">Create New Recipe</h1>
+      <main className="mx-auto max-w-4xl px-6 py-8">
+        <h1 className="mb-8 text-3xl font-bold">{t("recipeNew.pageTitle")}</h1>
 
         {error && (
           <div className="rounded-md bg-destructive/10 p-4 text-sm text-destructive mb-6">
@@ -212,10 +430,8 @@ export default function CreateRecipePage() {
         {step === "input" && (
           <Card>
             <CardHeader>
-              <CardTitle>How would you like to input your recipe?</CardTitle>
-              <CardDescription>
-                You can paste instructions, type them out, or record your voice
-              </CardDescription>
+              <CardTitle>{t("recipeNew.inputStepTitle")}</CardTitle>
+              <CardDescription>{t("recipeNew.inputStepSubtitle")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-4">
@@ -225,34 +441,71 @@ export default function CreateRecipePage() {
                     name="method"
                     value="text"
                     checked={inputMethod === "text"}
-                    onChange={(e) => setInputMethod("text" as any)}
+                    onChange={() => setInputMethod("text")}
                   />
                   <div>
-                    <p className="font-semibold">Text Input</p>
+                    <p className="font-semibold">{t("recipeNew.textInput")}</p>
                     <p className="text-sm text-muted-foreground">
-                      Paste or type your recipe instructions
+                      {t("recipeNew.textInputDescription")}
                     </p>
                   </div>
                 </label>
 
-                <label className="flex items-center gap-3 p-4 border rounded-lg cursor-pointer hover:bg-accent opacity-50 pointer-events-none">
+                <label
+                  className={`flex items-center gap-3 p-4 border rounded-lg hover:bg-accent ${
+                    voiceSupported ? "cursor-pointer" : "opacity-50 pointer-events-none"
+                  }`}
+                >
                   <input
                     type="radio"
                     name="method"
                     value="voice"
-                    disabled
+                    checked={inputMethod === "voice"}
+                    disabled={!voiceSupported}
+                    onChange={() => setInputMethod("voice")}
                   />
                   <div>
-                    <p className="font-semibold">Voice Recording</p>
+                    <p className="font-semibold">{t("recipeNew.voiceRecording")}</p>
                     <p className="text-sm text-muted-foreground">
-                      Record your voice (Coming soon for web)
+                      {voiceSupported
+                        ? t("recipeNew.voiceRecordingSupported")
+                        : t("recipeNew.voiceRecordingUnsupported")}
                     </p>
                   </div>
                 </label>
               </div>
 
+              {inputMethod === "voice" && (
+                <div className="flex flex-col items-center gap-3 p-6 border rounded-lg bg-muted/30">
+                  <div className="relative">
+                    {recording && (
+                      <span className="absolute inset-0 rounded-lg bg-destructive/40 animate-ping" />
+                    )}
+                    <Button
+                      type="button"
+                      variant={recording ? "destructive" : "default"}
+                      size="lg"
+                      onClick={recording ? stopRecording : startRecording}
+                      disabled={transcribing}
+                      className="relative"
+                    >
+                      {transcribing
+                        ? t("recipeNew.transcribing")
+                        : recording
+                          ? t("recipeNew.stopRecording")
+                          : t("recipeNew.startRecording")}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {recording
+                      ? t("recipeNew.recordingHint")
+                      : t("recipeNew.transcriptHint")}
+                  </p>
+                </div>
+              )}
+
               <div className="space-y-3">
-                <label className="text-sm font-semibold">Recipe language</label>
+                <label className="text-sm font-semibold">{t("recipeNew.recipeLanguage")}</label>
                 <select
                   value={language}
                   onChange={(e) =>
@@ -260,21 +513,18 @@ export default function CreateRecipePage() {
                   }
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  <option value="auto">Auto-detect from text</option>
+                  <option value="auto">{t("recipeNew.autoDetect")}</option>
                   {Object.values(RECIPE_LANGUAGES).map((lang) => (
                     <option key={lang.code} value={lang.code}>
                       {lang.name} ({lang.nativeName})
                     </option>
                   ))}
                 </select>
-                <p className="text-xs text-muted-foreground">
-                  Choose the language of your recipe, or auto-detect for mixed
-                  input (e.g. German, Tamil, Hindi, Japanese).
-                </p>
+                <p className="text-xs text-muted-foreground">{t("recipeNew.languageHint")}</p>
               </div>
 
               <div className="space-y-3">
-                <label className="text-sm font-semibold">Recipe Instructions</label>
+                <label className="text-sm font-semibold">{t("recipeNew.recipeInstructions")}</label>
                 <textarea
                   placeholder="Paste your recipe in any supported language — English, Deutsch, 日本語, Français, தமிழ், తెలుగు, हिन्दी, മലയാളം, Español, ਪੰਜਾਬੀ..."
                   value={recipeText}
@@ -289,7 +539,7 @@ export default function CreateRecipePage() {
                 size="lg"
                 className="w-full"
               >
-                {loading ? "Structuring..." : "✨ Structure with AI"}
+                {loading ? t("recipeNew.structuring") : t("recipeNew.structureWithAi")}
               </Button>
             </CardContent>
           </Card>
@@ -298,14 +548,12 @@ export default function CreateRecipePage() {
         {step === "preview" && (
           <Card>
             <CardHeader>
-              <CardTitle>Review Your Recipe</CardTitle>
-              <CardDescription>
-                AI has structured your recipe. Review and improve it before publishing.
-              </CardDescription>
+              <CardTitle>{t("recipeNew.reviewTitle")}</CardTitle>
+              <CardDescription>{t("recipeNew.reviewSubtitle")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-3">
-                <label className="text-sm font-semibold">Title</label>
+                <label className="text-sm font-semibold">{t("recipeNew.titleLabel")}</label>
                 <input
                   type="text"
                   value={title}
@@ -315,7 +563,7 @@ export default function CreateRecipePage() {
               </div>
 
               <div className="space-y-3">
-                <label className="text-sm font-semibold">Description</label>
+                <label className="text-sm font-semibold">{t("recipeNew.descriptionLabel")}</label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
@@ -325,20 +573,20 @@ export default function CreateRecipePage() {
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-3">
-                  <label className="text-sm font-semibold">Difficulty</label>
+                  <label className="text-sm font-semibold">{t("recipeNew.difficultyLabel")}</label>
                   <select
                     value={difficulty}
                     onChange={(e) => setDifficulty(e.target.value as any)}
                     className="w-full rounded-md border border-input px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   >
-                    <option value="easy">Easy</option>
-                    <option value="medium">Medium</option>
-                    <option value="hard">Hard</option>
+                    <option value="easy">{t("recipesList.easy")}</option>
+                    <option value="medium">{t("recipesList.medium")}</option>
+                    <option value="hard">{t("recipesList.hard")}</option>
                   </select>
                 </div>
 
                 <div className="space-y-3">
-                  <label className="text-sm font-semibold">Cooking Time (mins)</label>
+                  <label className="text-sm font-semibold">{t("recipeNew.cookingTimeLabel")}</label>
                   <input
                     type="number"
                     value={cookingTime || ""}
@@ -351,7 +599,37 @@ export default function CreateRecipePage() {
               </div>
 
               <div className="space-y-3">
-                <label className="text-sm font-semibold">Tags</label>
+                <label className="text-sm font-semibold">{t("recipeNew.visibilityLabel")}</label>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setVisibility("public")}
+                    className={`flex-1 rounded-lg border p-3 text-left text-sm transition-colors ${
+                      visibility === "public"
+                        ? "border-primary bg-primary/10"
+                        : "hover:bg-accent"
+                    }`}
+                  >
+                    <p className="font-semibold">🌍 {t("recipeNew.publicLabel")}</p>
+                    <p className="text-xs text-muted-foreground">{t("recipeNew.publicDescription")}</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setVisibility("private")}
+                    className={`flex-1 rounded-lg border p-3 text-left text-sm transition-colors ${
+                      visibility === "private"
+                        ? "border-primary bg-primary/10"
+                        : "hover:bg-accent"
+                    }`}
+                  >
+                    <p className="font-semibold">🔒 {t("recipeNew.privateLabel")}</p>
+                    <p className="text-xs text-muted-foreground">{t("recipeNew.privateDescription")}</p>
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <label className="text-sm font-semibold">{t("recipeNew.tagsLabel")}</label>
                 <div className="flex gap-2 mb-2 flex-wrap">
                   {tags.map((tag) => (
                     <Badge
@@ -367,72 +645,135 @@ export default function CreateRecipePage() {
                 <div className="flex gap-2">
                   <input
                     type="text"
-                    placeholder="Add tag and press Add"
+                    placeholder={t("recipeNew.addTagPlaceholder")}
                     value={tagInput}
                     onChange={(e) => setTagInput(e.target.value)}
                     onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), addTag())}
                     className="flex-1 rounded-md border border-input px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   />
                   <Button onClick={addTag} variant="outline">
-                    Add
+                    {t("recipeNew.add")}
                   </Button>
                 </div>
               </div>
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <label className="text-sm font-semibold">Ingredients</label>
+                  <label className="text-sm font-semibold">{t("recipeNew.ingredientsLabel")}</label>
                   <span className="text-xs text-muted-foreground">
-                    {ingredients.length} items
+                    {t("recipeNew.itemsCount", { count: ingredients.length })}
                   </span>
                 </div>
-                <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {ingredients.map((ing, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center gap-2 p-2 bg-muted rounded"
-                    >
-                      <span className="flex-1">
-                        {ing.quantity} {ing.name}
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeIngredient(idx)}
-                      >
-                        ✕
-                      </Button>
-                    </div>
-                  ))}
+                <SortableList
+                  items={ingredients}
+                  onReorder={reorderIngredients}
+                  className="space-y-2 max-h-64 overflow-y-auto"
+                  renderItem={(ing) => {
+                    const idx = ingredients.findIndex((i) => i._key === ing._key);
+                    return (
+                      <div className="flex flex-1 items-center gap-2 p-2 bg-muted rounded">
+                        <input
+                          value={ing.quantity}
+                          onChange={(e) => updateIngredient(idx, "quantity", e.target.value)}
+                          placeholder={t("recipeNew.qty")}
+                          className="w-24 rounded-md border border-input bg-background px-2 py-1 text-sm"
+                        />
+                        <input
+                          value={ing.name}
+                          onChange={(e) => updateIngredient(idx, "name", e.target.value)}
+                          placeholder={t("recipeNew.ingredientPlaceholder")}
+                          className="flex-1 rounded-md border border-input bg-background px-2 py-1 text-sm"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeIngredient(idx)}
+                        >
+                          ✕
+                        </Button>
+                      </div>
+                    );
+                  }}
+                />
+                <div className="flex gap-2 pt-1">
+                  <input
+                    value={newIngredientQuantity}
+                    onChange={(e) => setNewIngredientQuantity(e.target.value)}
+                    placeholder={t("recipeNew.qty")}
+                    className="w-24 rounded-md border border-input bg-background px-2 py-1 text-sm"
+                  />
+                  <input
+                    value={newIngredientName}
+                    onChange={(e) => setNewIngredientName(e.target.value)}
+                    onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), addIngredient())}
+                    placeholder={t("recipeNew.addIngredientPlaceholder")}
+                    className="flex-1 rounded-md border border-input bg-background px-2 py-1 text-sm"
+                  />
+                  <Button type="button" variant="outline" size="sm" onClick={addIngredient}>
+                    {t("recipeNew.addButton")}
+                  </Button>
                 </div>
               </div>
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <label className="text-sm font-semibold">Steps</label>
+                  <label className="text-sm font-semibold">{t("recipeNew.stepsLabel")}</label>
                   <span className="text-xs text-muted-foreground">
-                    {steps.length} steps
+                    {t("recipeNew.stepsCount", { count: steps.length })}
                   </span>
                 </div>
-                <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {steps.map((step, idx) => (
-                    <div
-                      key={idx}
-                      className="flex gap-2 p-2 bg-muted rounded items-start"
-                    >
-                      <span className="text-sm font-semibold shrink-0 mt-1">
-                        {idx + 1}.
-                      </span>
-                      <span className="flex-1 text-sm">{step.instructionText}</span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeStep(idx)}
-                      >
-                        ✕
-                      </Button>
-                    </div>
-                  ))}
+                <SortableList
+                  items={steps}
+                  onReorder={reorderSteps}
+                  className="space-y-2 max-h-64 overflow-y-auto"
+                  renderItem={(step) => {
+                    const idx = steps.findIndex((s) => s._key === step._key);
+                    const polishing = polishingStepKey === step._key;
+                    return (
+                      <div className="flex flex-1 gap-2 p-2 bg-muted rounded items-start">
+                        <span className="text-sm font-semibold shrink-0 mt-2">
+                          {idx + 1}.
+                        </span>
+                        <textarea
+                          value={step.instructionText}
+                          onChange={(e) => updateStep(idx, e.target.value)}
+                          className="flex-1 rounded-md border border-input bg-background px-2 py-1 text-sm min-h-10"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          title={t("recipeNew.polishStepTitle")}
+                          disabled={polishing || !step.instructionText.trim()}
+                          onClick={() => handlePolishStep(step._key)}
+                        >
+                          {polishing ? (
+                            "..."
+                          ) : (
+                            <Sparkles className="size-4" />
+                          )}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeStep(idx)}
+                        >
+                          ✕
+                        </Button>
+                      </div>
+                    );
+                  }}
+                />
+                <div className="flex gap-2 pt-1">
+                  <textarea
+                    value={newStepText}
+                    onChange={(e) => setNewStepText(e.target.value)}
+                    placeholder={t("recipeNew.addStepPlaceholder")}
+                    className="flex-1 rounded-md border border-input bg-background px-2 py-1 text-sm min-h-10"
+                  />
+                  <Button type="button" variant="outline" size="sm" onClick={addStep}>
+                    {t("recipeNew.addButton")}
+                  </Button>
                 </div>
               </div>
 
@@ -445,7 +786,7 @@ export default function CreateRecipePage() {
                   }}
                   className="flex-1"
                 >
-                  ← Back
+                  ← {t("recipeNew.back")}
                 </Button>
                 <Button
                   variant="outline"
@@ -453,10 +794,22 @@ export default function CreateRecipePage() {
                   disabled={loading}
                   className="flex-1"
                 >
-                  {loading ? "Improving..." : "✨ Improve Recipe"}
+                  {loading ? t("recipeNew.improving") : t("recipeNew.improveRecipe")}
                 </Button>
+                {improveHistory.length > 0 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleUndoImprove}
+                    disabled={loading}
+                    className="flex-1"
+                    title={t("recipeNew.undoImproveTitle")}
+                  >
+                    ↩ {t("recipeNew.undoImprove")}
+                  </Button>
+                )}
                 <Button onClick={() => setStep("details")} className="flex-1">
-                  Continue →
+                  {t("recipeNew.continue")} →
                 </Button>
               </div>
             </CardContent>
@@ -466,19 +819,53 @@ export default function CreateRecipePage() {
         {step === "details" && (
           <Card>
             <CardHeader>
-              <CardTitle>Final Details</CardTitle>
-              <CardDescription>
-                Review your recipe one more time before publishing
-              </CardDescription>
+              <CardTitle>{t("recipeNew.finalDetailsTitle")}</CardTitle>
+              <CardDescription>{t("recipeNew.finalDetailsSubtitle")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              <div className="space-y-3">
+                <label className="text-sm font-semibold">{t("recipeNew.recipePhotoLabel")}</label>
+                {imageUrl ? (
+                  <div className="relative w-full max-w-xs">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={imageUrl}
+                      alt="Recipe"
+                      className="w-full rounded-lg border object-cover aspect-video"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="mt-2"
+                      onClick={() => setImageUrl(null)}
+                    >
+                      {t("recipeNew.removePhoto")}
+                    </Button>
+                  </div>
+                ) : (
+                  <label className="cursor-pointer inline-block">
+                    <span className="inline-flex items-center rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium hover:bg-muted">
+                      {uploadingImage ? t("recipeNew.uploadingPhoto") : t("recipeNew.addPhoto")}
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={uploadingImage}
+                      onChange={handleImageUpload}
+                    />
+                  </label>
+                )}
+              </div>
+
               <div className="space-y-2">
                 <h3 className="font-semibold text-lg">{title}</h3>
                 {description && (
                   <p className="text-muted-foreground">{description}</p>
                 )}
                 <div className="flex flex-wrap gap-2 mt-2">
-                  <Badge>{difficulty}</Badge>
+                  <Badge>{t(`recipesList.${difficulty}`)}</Badge>
                   {tags.map((tag) => (
                     <Badge key={tag} variant="outline">
                       #{tag}
@@ -489,12 +876,12 @@ export default function CreateRecipePage() {
 
               {cookingTime && (
                 <div className="p-3 bg-muted rounded text-sm">
-                  ⏱️ {cookingTime} minutes cooking time
+                  ⏱️ {t("recipeNew.minutesCookingTime", { count: cookingTime })}
                 </div>
               )}
 
               <div>
-                <h4 className="font-semibold mb-2">Ingredients</h4>
+                <h4 className="font-semibold mb-2">{t("recipeNew.ingredientsLabel")}</h4>
                 <ul className="space-y-1 text-sm">
                   {ingredients.map((ing, idx) => (
                     <li key={idx} className="flex items-center gap-2">
@@ -508,7 +895,7 @@ export default function CreateRecipePage() {
               </div>
 
               <div>
-                <h4 className="font-semibold mb-2">Steps</h4>
+                <h4 className="font-semibold mb-2">{t("recipeNew.stepsLabel")}</h4>
                 <ol className="space-y-2 text-sm">
                   {steps.map((step, idx) => (
                     <li key={idx} className="flex gap-2">
@@ -525,7 +912,7 @@ export default function CreateRecipePage() {
                   onClick={() => setStep("preview")}
                   className="flex-1"
                 >
-                  ← Edit
+                  ← {t("recipeNew.editBack")}
                 </Button>
                 <Button
                   onClick={handleSubmit}
@@ -533,7 +920,7 @@ export default function CreateRecipePage() {
                   size="lg"
                   className="flex-1"
                 >
-                  {submitting ? "Publishing..." : "🚀 Publish Recipe"}
+                  {submitting ? t("recipeNew.publishing") : t("recipeNew.publishRecipe")}
                 </Button>
               </div>
             </CardContent>

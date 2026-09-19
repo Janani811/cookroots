@@ -1,11 +1,19 @@
 {
   "expo": {
-    "name": "Cooksy",
-    "slug": "cooksy",
+    "name": "CookRoots",
+    "slug": "cookroots",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
+    "scheme": "cookroots",
     "userInterfaceStyle": "light",
+    "plugins": [
+      "expo-router",
+      "expo-audio"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
     "ios": {
       "supportsTablet": true
     },

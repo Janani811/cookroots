@@ -10,16 +10,20 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { SiteHeader } from "@/components/site-header";
+import { RecipeCard } from "@/components/recipe-card";
+import { useTranslation } from "@/lib/i18n/i18n-provider";
 
 export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const { t } = useTranslation();
   const [userRecipes, setUserRecipes] = useState<any[]>([]);
+  const [visibilityTab, setVisibilityTab] = useState<"all" | "public" | "private">("all");
   const [stats, setStats] = useState({
     totalRecipes: 0,
     totalLikes: 0,
@@ -58,18 +62,16 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-background">
       <SiteHeader />
 
-      <main className="mx-auto max-w-5xl px-6 py-8">
+      <main className="mx-auto max-w-7xl px-6 py-8 lg:px-12">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Your Dashboard</h1>
-          <p className="text-muted-foreground">
-            Manage your recipes and track your community engagement
-          </p>
+          <h1 className="text-3xl font-bold mb-2">{t("dashboard.yourDashboard")}</h1>
+          <p className="text-muted-foreground">{t("dashboard.subtitle")}</p>
         </div>
 
         <div className="grid gap-4 md:grid-cols-3 mb-8">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Total Recipes</CardTitle>
+              <CardTitle className="text-base">{t("dashboard.totalRecipes")}</CardTitle>
             </CardHeader>
             <CardContent className="text-3xl font-bold">
               {stats.totalRecipes}
@@ -78,7 +80,7 @@ export default function DashboardPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Total Likes</CardTitle>
+              <CardTitle className="text-base">{t("dashboard.totalLikes")}</CardTitle>
             </CardHeader>
             <CardContent className="text-3xl font-bold">
               {stats.totalLikes}
@@ -87,7 +89,7 @@ export default function DashboardPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Total Comments</CardTitle>
+              <CardTitle className="text-base">{t("dashboard.totalComments")}</CardTitle>
             </CardHeader>
             <CardContent className="text-3xl font-bold">
               {stats.totalComments}
@@ -98,66 +100,89 @@ export default function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle>Your Recipes</CardTitle>
-              <CardDescription>
-                Manage and edit your published recipes
-              </CardDescription>
+              <CardTitle>{t("dashboard.yourRecipes")}</CardTitle>
+              <CardDescription>{t("dashboard.manageAndEdit")}</CardDescription>
             </div>
             <Link href="/recipes/new" className={cn(buttonVariants())}>
-              New Recipe
+              {t("dashboard.newRecipe")}
             </Link>
           </CardHeader>
           <CardContent>
+            {userRecipes.length > 0 && (
+              <div className="mb-4 inline-flex rounded-lg border border-border p-1">
+                {(["all", "public", "private"] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    type="button"
+                    onClick={() => setVisibilityTab(tab)}
+                    className={cn(
+                      "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                      visibilityTab === tab
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {t(`dashboard.${tab}Tab`)}
+                  </button>
+                ))}
+              </div>
+            )}
             {loading ? (
-              <p className="text-muted-foreground">Loading...</p>
+              <p className="text-muted-foreground">{t("common.loading")}</p>
             ) : userRecipes.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-muted-foreground mb-4">
-                  You haven&apos;t created any recipes yet
-                </p>
+                <p className="text-muted-foreground mb-4">{t("dashboard.noRecipesYet")}</p>
                 <Link href="/recipes/new" className={cn(buttonVariants())}>
-                  Create Your First Recipe
+                  {t("dashboard.createFirstRecipe")}
                 </Link>
               </div>
-            ) : (
-              <div className="space-y-4">
-                {userRecipes.map((recipe) => (
-                  <div
+            ) : (() => {
+              const filteredRecipes =
+                visibilityTab === "all"
+                  ? userRecipes
+                  : userRecipes.filter((r) => r.visibility === visibilityTab);
+
+              if (filteredRecipes.length === 0) {
+                return (
+                  <p className="text-muted-foreground text-center py-8">
+                    {t(
+                      visibilityTab === "public"
+                        ? "dashboard.noPublicRecipes"
+                        : "dashboard.noPrivateRecipes"
+                    )}
+                  </p>
+                );
+              }
+
+              return (
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {filteredRecipes.map((recipe) => (
+                  <RecipeCard
                     key={recipe.id}
-                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="flex-1">
-                      <h3 className="font-semibold">{recipe.title}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {recipe.ingredients?.length || 0} ingredients •{" "}
-                        {recipe.steps?.length || 0} steps
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-right text-sm">
-                        <p className="font-semibold">❤️ {recipe.likesCount || 0}</p>
-                      </div>
-                      <div className="flex gap-2">
+                    recipe={recipe}
+                    footer={
+                      <>
                         <Link
                           href={`/recipes/${recipe.id}`}
                           className={cn(
                             buttonVariants({ size: "sm", variant: "outline" })
                           )}
                         >
-                          View
+                          {t("dashboard.view")}
                         </Link>
                         <Link
                           href={`/recipes/${recipe.id}/edit`}
                           className={cn(buttonVariants({ size: "sm", variant: "ghost" }))}
                         >
-                          Edit
+                          {t("dashboard.edit")}
                         </Link>
-                      </div>
-                    </div>
-                  </div>
+                      </>
+                    }
+                  />
                 ))}
               </div>
-            )}
+              );
+            })()}
           </CardContent>
         </Card>
       </main>

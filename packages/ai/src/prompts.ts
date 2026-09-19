@@ -34,10 +34,11 @@ Return valid JSON only with this shape:
 }
 
 Rules:
-- Preserve the cook's intent; fix grammar and sequence
-- One primary action per step when possible
-- Infer reasonable quantities if missing ("Salz bisschen" → "nach Geschmack", "some salt" → "to taste")
-- Do not invent ingredients not implied by the input
+- Top priority: preserve the user's exact words, quantities, ingredient names, and phrasing as given. Structure and clean up formatting only — do not paraphrase, reword, "improve," or substitute synonyms for anything the user explicitly stated
+- Only fix grammar/punctuation that is clearly a typo; never rewrite a sentence that already reads correctly just to sound different
+- One primary action per step when possible, but keep the user's original wording for that action
+- Only infer a quantity when the user gave none at all ("Salz bisschen" → "nach Geschmack", "some salt" → "to taste"); if the user gave a quantity, use it exactly as written
+- Do not invent ingredients, steps, or details not present in the input
 - Tags should include dietary info when clear (veg, non-veg, dessert, etc.)
 - Write title, description, ingredient names, step instructions, and tags in the target language
 - Keep culturally specific ingredient names in their natural form (e.g. Urad Dal, Curryblätter, Sambar)`;
@@ -139,6 +140,68 @@ Rules:
 
 export function classifyHealthPrompt(recipe: StructuredRecipe) {
   return `${CLASSIFY_HEALTH_SYSTEM}
+
+Recipe:
+${JSON.stringify(recipe, null, 2)}`;
+}
+
+export const TRANSCRIBE_AUDIO_SYSTEM = `Transcribe the speech in this audio recording of someone dictating a recipe.
+
+Rules:
+- Output plain text only — the transcript, nothing else
+- No commentary, no markdown, no quotes around the text
+- Preserve the speaker's language; do not translate
+- Lightly clean up filler words ("um", "uh") but keep the cook's wording and intent intact
+- If no clear speech is present, output an empty string`;
+
+export function transcribeAudioPrompt(language?: string) {
+  if (!language || language === "auto") {
+    return TRANSCRIBE_AUDIO_SYSTEM;
+  }
+  return `${TRANSCRIBE_AUDIO_SYSTEM}\n\nThe speaker is expected to be speaking ${getLanguageLabel(language)}.`;
+}
+
+export const POLISH_STEP_SYSTEM = `Lightly clean up a single cooking recipe step so it matches the tone of the rest of a structured recipe.
+
+Rules:
+- Fix grammar and punctuation only
+- Preserve the exact meaning, ingredients, quantities, and intent — do not add or remove information
+- One clear sentence; trim filler words
+- Output plain text only — the rewritten step, nothing else. No quotes, no markdown, no step number`;
+
+export function polishStepPrompt(text: string, language?: string) {
+  const langNote =
+    language && language !== "auto"
+      ? `\nWrite the output in ${getLanguageLabel(language)}.`
+      : "\nWrite the output in the same language as the input.";
+
+  return `${POLISH_STEP_SYSTEM}${langNote}
+
+Step:
+${text}`;
+}
+
+export const TRANSLATE_RECIPE_SYSTEM = `Translate a structured recipe into another language.
+
+Return valid JSON only with this shape:
+{
+  "title": string,
+  "description": string | null,
+  "ingredients": [{ "name": string, "quantity": string }],
+  "steps": [{ "stepNumber": number, "instructionText": string }]
+}
+
+Rules:
+- Translate naturally, the way a native speaker of the target language would write it — not word-for-word
+- Preserve exact quantities and units; only convert units if the original had none and one is clearly implied
+- Keep culturally specific dish/ingredient names recognizable — transliterate rather than inventing a foreign substitute (e.g. "Sambar" stays "Sambar", not reinvented as an unrelated dish)
+- Preserve step order and count exactly — do not add, remove, or merge steps
+- Do not translate proper nouns like brand names`;
+
+export function translateRecipePrompt(recipe: StructuredRecipe, targetLanguage: string) {
+  return `${TRANSLATE_RECIPE_SYSTEM}
+
+Target language: ${getLanguageLabel(targetLanguage)}
 
 Recipe:
 ${JSON.stringify(recipe, null, 2)}`;

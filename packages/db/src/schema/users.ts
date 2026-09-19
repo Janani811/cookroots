@@ -14,7 +14,6 @@ export const users = pgTable("users", {
   website: text("website"),
   instagram: text("instagram"),
   role: userRoleEnum("role").notNull().default("viewer"),
-  firebaseUid: text("firebase_uid").unique(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
