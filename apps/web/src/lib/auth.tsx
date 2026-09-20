@@ -25,43 +25,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const persistSession = useCallback((token: string, nextUser: User) => {
-    localStorage.setItem("cookroots_token", token);
-    setUser(nextUser);
-  }, []);
-
   useEffect(() => {
-    const token = localStorage.getItem("cookroots_token");
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-
     api
       .getMe()
       .then(setUser)
-      .catch(() => localStorage.removeItem("cookroots_token"))
+      .catch(() => setUser(null))
       .finally(() => setLoading(false));
   }, []);
 
-  const login = useCallback(
-    async (email: string, password: string) => {
-      const { token, user: nextUser } = await api.login(email, password);
-      persistSession(token, nextUser);
-    },
-    [persistSession]
-  );
+  const login = useCallback(async (email: string, password: string) => {
+    const { user: nextUser } = await api.login(email, password);
+    setUser(nextUser);
+  }, []);
 
   const signup = useCallback(
     async (name: string, email: string, password: string) => {
-      const { token, user: nextUser } = await api.signup(name, email, password);
-      persistSession(token, nextUser);
+      const { user: nextUser } = await api.signup(name, email, password);
+      setUser(nextUser);
     },
-    [persistSession]
+    []
   );
 
   const logout = useCallback(() => {
-    localStorage.removeItem("cookroots_token");
+    api.logout().catch(() => {});
     setUser(null);
   }, []);
 

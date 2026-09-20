@@ -5,6 +5,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
+import { extractToken } from './auth.constants';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
@@ -12,16 +13,10 @@ export class JwtAuthGuard implements CanActivate {
 
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest();
-    const authHeader = request.headers.authorization;
+    const token = extractToken(request);
 
-    if (!authHeader) {
-      throw new UnauthorizedException('Missing authorization header');
-    }
-
-    const [scheme, token] = authHeader.split(' ');
-
-    if (scheme !== 'Bearer' || !token) {
-      throw new UnauthorizedException('Invalid authorization header format');
+    if (!token) {
+      throw new UnauthorizedException('Missing authentication credentials');
     }
 
     try {

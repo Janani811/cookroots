@@ -1,5 +1,6 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { AuthService } from './auth.service';
+import { extractToken } from './auth.constants';
 
 @Injectable()
 export class OptionalAuthGuard implements CanActivate {
@@ -7,16 +8,13 @@ export class OptionalAuthGuard implements CanActivate {
 
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest();
-    const authHeader = request.headers.authorization;
+    const token = extractToken(request);
 
-    if (authHeader) {
-      const [scheme, token] = authHeader.split(' ');
-      if (scheme === 'Bearer' && token) {
-        try {
-          request.userId = this.authService.verifyToken(token);
-        } catch {
-          // Ignore invalid optional auth
-        }
+    if (token) {
+      try {
+        request.userId = this.authService.verifyToken(token);
+      } catch {
+        // Ignore invalid optional auth
       }
     }
 

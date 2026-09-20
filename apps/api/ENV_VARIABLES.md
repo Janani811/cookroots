@@ -56,6 +56,11 @@
 - **Default**: `7d`
 - **Options**: `24h`, `7d`, `30d`, etc.
 
+### `COOKIE_DOMAIN`
+- **Description**: Domain attribute for the httpOnly auth cookie the web app uses to authenticate (`login`/`signup` set it, `logout` clears it; the mobile app is unaffected — it still sends a `Bearer` token since it has no cookie jar)
+- **When needed**: Only in production, when the web app and API live on different subdomains of the same site (e.g. `app.cookroots.com` and `api.cookroots.com`) — set it to the shared parent domain (`.cookroots.com`) so the cookie reaches both
+- **Default**: unset (host-only cookie) — correct for local development, where the web app and API differ only by port
+
 ### `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`
 - **Description**: SMTP credentials used by nodemailer to send password reset emails
 - **When needed**: For real email delivery. Without all four set, forgot-password falls back to dev mode — the reset link is returned directly in the API response instead of being emailed

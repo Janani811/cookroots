@@ -1,6 +1,7 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
+import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 
 export async function createApp(): Promise<NestExpressApplication> {
@@ -13,6 +14,7 @@ export async function createApp(): Promise<NestExpressApplication> {
     ],
     credentials: true,
   });
+  app.use(cookieParser());
   app.setGlobalPrefix('api');
   app.useGlobalPipes(
     new ValidationPipe({

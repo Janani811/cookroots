@@ -63,25 +63,12 @@ export type TranslatedRecipeContent = {
   steps: { stepNumber: number; instructionText: string }[];
 };
 
-function getToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem("cookroots_token");
-}
-
-function authHeaders(): HeadersInit {
-  const token = getToken();
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-  if (token) headers.Authorization = `Bearer ${token}`;
-  return headers;
-}
-
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
+    credentials: "include",
     headers: {
-      ...authHeaders(),
+      "Content-Type": "application/json",
       ...(options.headers || {}),
     },
   });
@@ -113,6 +100,10 @@ export const api = {
 
   async getMe() {
     return request<User>("/auth/me");
+  },
+
+  async logout() {
+    return request<{ message: string }>("/auth/logout", { method: "POST" });
   },
 
   async forgotPassword(email: string) {
@@ -333,13 +324,12 @@ export const api = {
       );
     }
 
-    const token = getToken();
     const formData = new FormData();
     formData.append("file", file, file instanceof File ? file.name : "upload");
 
     const res = await fetch(`${API_URL}/upload`, {
       method: "POST",
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      credentials: "include",
       body: formData,
     });
 
@@ -353,14 +343,13 @@ export const api = {
 
   // Voice
   async transcribeAudio(blob: Blob, language?: string): Promise<{ text: string }> {
-    const token = getToken();
     const formData = new FormData();
     formData.append("audio", blob, "recording.webm");
     if (language) formData.append("language", language);
 
     const res = await fetch(`${API_URL}/ai/transcribe`, {
       method: "POST",
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      credentials: "include",
       body: formData,
     });
 
