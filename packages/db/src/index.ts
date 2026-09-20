@@ -4,6 +4,7 @@ import connectionOptions from "./config/database.config";
 import * as schema from "./schema/index";
 
 export function createDb(options?: { logger?: boolean }) {
+  console.log('first', connectionOptions, process.env.NODE_ENV)
   console.log(`Connecting to database at ${connectionOptions.host}:${connectionOptions.port}`);
   const connection = new Pool(connectionOptions);
   // A pooled connection that drops after being returned to the pool (idle
