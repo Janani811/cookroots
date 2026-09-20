@@ -1,6 +1,14 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
   "installCommand": "cd ../.. && npm install",
   "buildCommand": "cd ../.. && npx turbo run build --filter=api",
+  "outputDirectory": "public",
+  "functions": {
+    "api/index.ts": {
+      "memory": 512,
+      "maxDuration": 30
+    }
+  },
   "rewrites": [{ "source": "/(.*)", "destination": "/api" }]
 }
