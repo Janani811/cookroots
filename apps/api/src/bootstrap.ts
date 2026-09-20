@@ -13,7 +13,7 @@ export async function createApp(): Promise<NestExpressApplication> {
       ? true
       : raw
           .split(',')
-          .map((o) => o.trim())
+          .map((o) => o.trim().replace(/\/+$/, ''))
           .filter(Boolean);
   app.enableCors({
     origin,
