@@ -1,4 +1,21 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+import axios, { type AxiosRequestConfig } from "axios";
+
+// Empty (the default) means "same origin" — requests go to `/api/…`, which the
+// deployed web app's vercel.json rewrites to the API. Set NEXT_PUBLIC_API_URL
+// only for local dev, where there's no rewrite proxy.
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
+
+const client = axios.create({
+  baseURL: API_URL,
+  withCredentials: true,
+});
+
+/** Nest's default error body: `message` is a string, or an array for validation errors. */
+function errorMessage(data: unknown, fallback: string): string {
+  const message = (data as { message?: string | string[] } | undefined)?.message;
+  if (Array.isArray(message)) return message.join(", ") || fallback;
+  return message || fallback;
+}
 
 export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
@@ -63,23 +80,18 @@ export type TranslatedRecipeContent = {
   steps: { stepNumber: number; instructionText: string }[];
 };
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
-    ...options,
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers || {}),
-    },
-  });
-
-  if (!res.ok) {
-    const message = await res.text().catch(() => "Request failed");
-    throw new Error(message || `Request failed (${res.status})`);
+async function request<T>(path: string, config: AxiosRequestConfig = {}): Promise<T> {
+  try {
+    const res = await client.request<T>({ url: path, ...config });
+    return res.data;
+  } catch (err) {
+    if (axios.isAxiosError(err)) {
+      throw new Error(
+        errorMessage(err.response?.data, `Request failed (${err.response?.status ?? "network error"})`)
+      );
+    }
+    throw err;
   }
-
-  if (res.status === 204) return undefined as T;
-  return res.json();
 }
 
 export const api = {
@@ -87,14 +99,14 @@ export const api = {
   async signup(name: string, email: string, password: string) {
     return request<{ user: User; token: string }>("/auth/signup", {
       method: "POST",
-      body: JSON.stringify({ name, email, password }),
+      data: { name, email, password },
     });
   },
 
   async login(email: string, password: string) {
     return request<{ user: User; token: string }>("/auth/login", {
       method: "POST",
-      body: JSON.stringify({ email, password }),
+      data: { email, password },
     });
   },
 
@@ -111,7 +123,7 @@ export const api = {
       "/auth/forgot-password",
       {
         method: "POST",
-        body: JSON.stringify({ email }),
+        data: { email },
       }
     );
   },
@@ -119,7 +131,7 @@ export const api = {
   async resetPassword(token: string, password: string) {
     return request<{ message: string }>("/auth/reset-password", {
       method: "POST",
-      body: JSON.stringify({ token, password }),
+      data: { token, password },
     });
   },
 
@@ -133,24 +145,24 @@ export const api = {
     if (params?.search) query.append("search", params.search);
     if (params?.difficulty) query.append("difficulty", params.difficulty);
     if (params?.createdBy) query.append("createdBy", params.createdBy);
-    return request<any[]>(`/recipes?${query}`, { cache: "no-store" });
+    return request<any[]>(`/recipes?${query}`);
   },
 
   async getRecipe(id: string) {
-    return request<any>(`/recipes/${id}`, { cache: "no-store" });
+    return request<any>(`/recipes/${id}`);
   },
 
   async createRecipe(data: Record<string, unknown>) {
     return request<any>("/recipes", {
       method: "POST",
-      body: JSON.stringify(data),
+      data,
     });
   },
 
   async updateRecipe(id: string, data: Record<string, unknown>) {
     return request<any>(`/recipes/${id}`, {
       method: "PATCH",
-      body: JSON.stringify(data),
+      data,
     });
   },
 
@@ -163,7 +175,7 @@ export const api = {
   async matchIngredients(ingredients: string[]) {
     return request<any[]>("/recipes/match-ingredients", {
       method: "POST",
-      body: JSON.stringify({ ingredients }),
+      data: { ingredients },
     });
   },
 
@@ -171,28 +183,28 @@ export const api = {
   async structureRecipe(text: string, language?: string) {
     return request<any>("/ai/structure", {
       method: "POST",
-      body: JSON.stringify({ text, language }),
+      data: { text, language },
     });
   },
 
   async improveRecipe(recipeJson: string, language?: string) {
     return request<any>("/ai/improve", {
       method: "POST",
-      body: JSON.stringify({ recipeJson, language }),
+      data: { recipeJson, language },
     });
   },
 
   async normalizeIngredients(ingredients: string[]) {
     return request<any>("/ai/normalize-ingredients", {
       method: "POST",
-      body: JSON.stringify({ ingredients }),
+      data: { ingredients },
     });
   },
 
   async polishStep(text: string, language?: string) {
     return request<{ text: string }>("/ai/polish-step", {
       method: "POST",
-      body: JSON.stringify({ text, language }),
+      data: { text, language },
     });
   },
 
@@ -206,15 +218,13 @@ export const api = {
   },
 
   async getComments(recipeId: string) {
-    return request<any[]>(`/recipes/${recipeId}/comments`, {
-      cache: "no-store",
-    });
+    return request<any[]>(`/recipes/${recipeId}/comments`);
   },
 
   async addComment(recipeId: string, text: string, parentCommentId?: string) {
     return request<any>(`/recipes/${recipeId}/comments`, {
       method: "POST",
-      body: JSON.stringify({ content: text, parentCommentId }),
+      data: { content: text, parentCommentId },
     });
   },
 
@@ -231,9 +241,7 @@ export const api = {
   },
 
   async getReactions(recipeId: string) {
-    return request<ReactionSummary[]>(`/recipes/${recipeId}/reactions`, {
-      cache: "no-store",
-    });
+    return request<ReactionSummary[]>(`/recipes/${recipeId}/reactions`);
   },
 
   async addReaction(
@@ -244,7 +252,7 @@ export const api = {
   ) {
     return request<any>(`/recipes/${recipeId}/reactions`, {
       method: "POST",
-      body: JSON.stringify({ targetType, targetId, emoji }),
+      data: { targetType, targetId, emoji },
     });
   },
 
@@ -256,7 +264,7 @@ export const api = {
   ) {
     return request<void>(`/recipes/${recipeId}/reactions`, {
       method: "DELETE",
-      body: JSON.stringify({ targetType, targetId, emoji }),
+      data: { targetType, targetId, emoji },
     });
   },
 
@@ -266,7 +274,7 @@ export const api = {
       recipeIds.map((id) =>
         request<GroceryList>(`/grocery/from-recipe/${id}`, {
           method: "POST",
-          body: JSON.stringify({ name }),
+          data: { name },
         })
       )
     );
@@ -274,19 +282,17 @@ export const api = {
   },
 
   async getGroceryListsForUser(userId: string) {
-    return request<GroceryList[]>(`/grocery/users/${userId}`, {
-      cache: "no-store",
-    });
+    return request<GroceryList[]>(`/grocery/users/${userId}`);
   },
 
   async getGroceryList(listId: string) {
-    return request<GroceryList>(`/grocery/${listId}`, { cache: "no-store" });
+    return request<GroceryList>(`/grocery/${listId}`);
   },
 
   async renameGroceryList(listId: string, name: string) {
     return request<GroceryList>(`/grocery/${listId}`, {
       method: "PATCH",
-      body: JSON.stringify({ name }),
+      data: { name },
     });
   },
 
@@ -299,7 +305,7 @@ export const api = {
   async addGroceryItem(listId: string, name: string, quantity?: string) {
     return request<GroceryItem>(`/grocery/${listId}/items`, {
       method: "POST",
-      body: JSON.stringify({ name, quantity }),
+      data: { name, quantity },
     });
   },
 
@@ -312,7 +318,7 @@ export const api = {
   async toggleGroceryItem(itemId: string, isChecked: boolean) {
     return request<GroceryItem>("/grocery/items/toggle", {
       method: "PATCH",
-      body: JSON.stringify({ itemId, isChecked }),
+      data: { itemId, isChecked },
     });
   },
 
@@ -327,18 +333,10 @@ export const api = {
     const formData = new FormData();
     formData.append("file", file, file instanceof File ? file.name : "upload");
 
-    const res = await fetch(`${API_URL}/upload`, {
+    return request<{ url: string }>("/upload", {
       method: "POST",
-      credentials: "include",
-      body: formData,
+      data: formData,
     });
-
-    if (!res.ok) {
-      const message = await res.text().catch(() => "Request failed");
-      throw new Error(message || `Request failed (${res.status})`);
-    }
-
-    return res.json();
   },
 
   // Voice
@@ -347,29 +345,19 @@ export const api = {
     formData.append("audio", blob, "recording.webm");
     if (language) formData.append("language", language);
 
-    const res = await fetch(`${API_URL}/ai/transcribe`, {
+    return request<{ text: string }>("/ai/transcribe", {
       method: "POST",
-      credentials: "include",
-      body: formData,
+      data: formData,
     });
-
-    if (!res.ok) {
-      const message = await res.text().catch(() => "Request failed");
-      throw new Error(message || `Request failed (${res.status})`);
-    }
-
-    return res.json();
   },
 
   // Notifications
   async getNotifications() {
-    return request<AppNotification[]>("/notifications", { cache: "no-store" });
+    return request<AppNotification[]>("/notifications");
   },
 
   async getUnreadNotificationCount() {
-    return request<{ count: number }>("/notifications/unread-count", {
-      cache: "no-store",
-    });
+    return request<{ count: number }>("/notifications/unread-count");
   },
 
   async markNotificationRead(id: string) {
@@ -388,7 +376,7 @@ export const api = {
   async translateRecipe(recipeId: string, language: string) {
     return request<TranslatedRecipeContent>(`/recipes/${recipeId}/translate`, {
       method: "POST",
-      body: JSON.stringify({ language }),
+      data: { language },
     });
   },
 
@@ -396,7 +384,7 @@ export const api = {
   async rateRecipe(recipeId: string, rating: number) {
     return request<any>(`/recipes/${recipeId}/ratings`, {
       method: "POST",
-      body: JSON.stringify({ rating }),
+      data: { rating },
     });
   },
 
@@ -406,7 +394,7 @@ export const api = {
   ) {
     return request<any>(`/recipes/${recipeId}/tried`, {
       method: "POST",
-      body: JSON.stringify(data),
+      data,
     });
   },
 
@@ -416,7 +404,7 @@ export const api = {
   ) {
     return request<User>(`/auth/users/${userId}`, {
       method: "PATCH",
-      body: JSON.stringify(data),
+      data,
     });
   },
 
