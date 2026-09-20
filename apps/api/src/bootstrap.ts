@@ -8,10 +8,7 @@ export async function createApp(): Promise<NestExpressApplication> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   app.enableCors({
-    origin: process.env.CORS_ORIGIN || [
-      'http://localhost:3000',
-      'http://localhost:3001',
-    ],
+    origin: '*',
     credentials: true,
   });
   app.use(cookieParser());
