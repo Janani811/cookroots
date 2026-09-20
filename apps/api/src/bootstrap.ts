@@ -7,8 +7,17 @@ import { AppModule } from './app.module';
 export async function createApp(): Promise<NestExpressApplication> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
+  const raw = (process.env.CORS_ORIGINS ?? 'http://localhost:3000').trim();
+  const origin =
+    raw === '*'
+      ? true
+      : raw
+          .split(',')
+          .map((o) => o.trim())
+          .filter(Boolean);
   app.enableCors({
-    origin: '*',
+    origin,
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
   app.use(cookieParser());
