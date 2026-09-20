@@ -56,14 +56,14 @@
 - **Default**: `7d`
 - **Options**: `24h`, `7d`, `30d`, etc.
 
-### `RESEND_API_KEY`
-- **Description**: Resend API key for sending password reset emails
-- **When needed**: For real email delivery. Without it, forgot-password falls back to dev mode — the reset link is returned directly in the API response instead of being emailed
-- **How to get**: Sign up free at https://resend.com (3,000 emails/month free, no card required) and create an API key
+### `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`
+- **Description**: SMTP credentials used by nodemailer to send password reset emails
+- **When needed**: For real email delivery. Without all four set, forgot-password falls back to dev mode — the reset link is returned directly in the API response instead of being emailed
+- **Notes**: `SMTP_PORT=465` is treated as implicit TLS; any other port uses STARTTLS. For Gmail, use `smtp.gmail.com`, port `587`, and an [app password](https://myaccount.google.com/apppasswords) (not your account password)
 
 ### `EMAIL_FROM`
 - **Description**: The "from" address used for password reset emails
-- **Default**: `onboarding@resend.dev` (Resend's shared testing address — works without verifying your own domain)
+- **Default**: falls back to `SMTP_USER`, then `no-reply@cookroots.app`
 
 ### `WEB_URL`
 - **Description**: Base URL of the web app, used to build password reset links (e.g. `${WEB_URL}/reset-password?token=...`)

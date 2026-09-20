@@ -1,17 +1,33 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Resend } from 'resend';
+import { createTransport, Transporter } from 'nodemailer';
+import { buildPasswordResetEmail } from './templates/password-reset.template';
 
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
-  private readonly resend: Resend | null;
+  private readonly transporter: Transporter | null;
   private readonly from: string;
 
   constructor(private readonly config: ConfigService) {
-    const apiKey = this.config.get<string>('RESEND_API_KEY');
-    this.resend = apiKey ? new Resend(apiKey) : null;
-    this.from = this.config.get<string>('EMAIL_FROM', 'onboarding@resend.dev');
+    const host = this.config.get<string>('SMTP_HOST');
+    const port = this.config.get<string>('SMTP_PORT');
+    const user = this.config.get<string>('SMTP_USER');
+    const pass = this.config.get<string>('SMTP_PASS');
+
+    this.transporter =
+      host && port && user && pass
+        ? createTransport({
+            host,
+            port: Number(port),
+            secure: Number(port) === 465,
+            auth: { user, pass },
+          })
+        : null;
+    this.from = this.config.get<string>(
+      'EMAIL_FROM',
+      user ?? 'no-reply@cookroots.app',
+    );
   }
 
   /**
@@ -22,32 +38,22 @@ export class EmailService {
     to: string,
     resetUrl: string,
   ): Promise<{ sent: boolean }> {
-    if (!this.resend) {
+    if (!this.transporter) {
       this.logger.warn(
-        `RESEND_API_KEY not set — skipping email send. Reset link for ${to}: ${resetUrl}`,
+        `SMTP not configured — skipping email send. Reset link for ${to}: ${resetUrl}`,
       );
       return { sent: false };
     }
 
     try {
-      const { error } = await this.resend.emails.send({
+      const { subject, html, text } = buildPasswordResetEmail(resetUrl);
+      await this.transporter.sendMail({
         from: this.from,
         to,
-        subject: 'Reset your CookRoots password',
-        html: `
-          <p>Someone requested a password reset for your CookRoots account.</p>
-          <p><a href="${resetUrl}">Click here to reset your password</a></p>
-          <p>This link expires in 1 hour. If you didn't request this, you can ignore this email.</p>
-        `,
+        subject,
+        html,
+        text,
       });
-
-      if (error) {
-        // The Resend SDK returns API errors as data rather than throwing.
-        this.logger.error(
-          `Failed to send password reset email to ${to}: ${error.message}`,
-        );
-        return { sent: false };
-      }
 
       return { sent: true };
     } catch (err) {
