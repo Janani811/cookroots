@@ -8,6 +8,7 @@ import { GroceryModule } from './grocery/grocery.module';
 import { HealthModule } from './health/health.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { RecipesModule } from './recipes/recipes.module';
+import { RootModule } from './root/root.module';
 import { SocialModule } from './social/social.module';
 import { UploadModule } from './upload/upload.module';
 
@@ -24,6 +25,7 @@ import { UploadModule } from './upload/upload.module';
     UploadModule,
     NotificationsModule,
     HealthModule,
+    RootModule,
   ],
 })
 export class AppModule {}

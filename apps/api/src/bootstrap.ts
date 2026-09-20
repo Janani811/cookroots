@@ -12,7 +12,7 @@ export async function createApp(): Promise<NestExpressApplication> {
     credentials: true,
   });
   app.use(cookieParser());
-  app.setGlobalPrefix('api');
+  app.setGlobalPrefix('api', { exclude: ['/'] });
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
